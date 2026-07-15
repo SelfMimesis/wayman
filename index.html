@@ -134,6 +134,28 @@
             <li><span class="metric__label">Reclamaciones legales activas</span><span class="metric__value">7</span></li>
             <li><span class="metric__label">Probabilidad de intervención externa</span><span class="metric__value">ELEVADA</span></li>
           </ul>
+          <!-- Gráfico decorativo tipo "bolsa" que llena el hueco que queda
+               bajo la lista de métricas; puramente visual (aria-hidden).
+               Dos líneas (principal + una secundaria tipo "media móvil") con
+               stroke-dashoffset animado para que la energía fluya por la
+               línea de verdad, no solo un barrido decorativo por encima. -->
+          <div class="metric-chart" aria-hidden="true">
+            <svg class="metric-chart__svg" viewBox="0 0 200 90" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="metric-chart-fill" x1="0" y1="0" x2="0" y2="1">
+                  <stop class="metric-chart__stop-a" offset="0%"></stop>
+                  <stop class="metric-chart__stop-b" offset="100%"></stop>
+                </linearGradient>
+              </defs>
+              <path class="metric-chart__area" d="M0,70 L18,64 L36,68 L54,50 L72,56 L90,38 L108,44 L126,28 L144,36 L162,20 L180,28 L200,12 L200,90 L0,90 Z"></path>
+              <path class="metric-chart__line-secondary" d="M0,78 L18,74 L36,76 L54,66 L72,70 L90,58 L108,62 L126,50 L144,55 L162,45 L180,50 L200,40"></path>
+              <path class="metric-chart__line" d="M0,70 L18,64 L36,68 L54,50 L72,56 L90,38 L108,44 L126,28 L144,36 L162,20 L180,28 L200,12"></path>
+            </svg>
+            <div class="metric-chart__sweep"></div>
+            <div class="metric-chart__bars">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+          </div>
         </article>
 
         <article class="card" data-panel="alerta" aria-labelledby="panel-alerta-heading">
@@ -181,28 +203,33 @@
 
       </main>
 
-    </div>
+      <!-- ==========================================================
+           TECLADO — superpuesto sobre el board (comparte su celda del
+           grid de .desktop__body y se pega abajo con align-self:end), no
+           es una fila propia: así las tarjetas se ven detrás/alrededor.
+           Alimenta la terminal de arriba (data-panel="terminal").
+           ========================================================== -->
+      <section class="keyboard-zone" aria-label="Teclado de acceso">
+        <div class="keyboard" id="keyboard" role="group" aria-label="Teclado virtual">
+          <div class="keyboard__hand keyboard__hand--left" data-hand="left">
+            <!-- Teclas generadas dinámicamente por script.js -->
+          </div>
+          <div class="keyboard__center" aria-hidden="true"></div>
+          <div class="keyboard__hand keyboard__hand--right" data-hand="right">
+            <!-- Teclas generadas dinámicamente por script.js -->
+          </div>
+        </div>
+      </section>
 
-    <!-- ==========================================================
-         TECLADO — zona completa inferior, dividido en dos manos.
-         Alimenta la terminal de arriba (data-panel="terminal").
-         ========================================================== -->
-    <section class="keyboard-zone" aria-label="Teclado de acceso">
-      <div class="keyboard" id="keyboard" role="group" aria-label="Teclado virtual">
-        <div class="keyboard__hand keyboard__hand--left" data-hand="left">
-          <!-- Teclas generadas dinámicamente por script.js -->
-        </div>
-        <div class="keyboard__center" aria-hidden="true"></div>
-        <div class="keyboard__hand keyboard__hand--right" data-hand="right">
-          <!-- Teclas generadas dinámicamente por script.js -->
-        </div>
-      </div>
-    </section>
+    </div>
 
     <!-- ==========================================================
          FOOTER — barra de acciones tipo consola
          ========================================================== -->
     <footer class="desktop__footer">
+      <!-- Mensaje transitorio tras un clic en la taskbar; script.js le pone
+           el texto y la clase is-visible, y la quita sola a los 4-5s. -->
+      <div class="system-log" id="system-log" role="status" aria-live="polite"></div>
       <div class="taskbar">
         <button class="taskbar__button" type="button" data-action="abrir-informe">Abrir informe confidencial</button>
         <button class="taskbar__button" type="button" data-action="autorizar-operacion">Autorizar operación</button>
@@ -210,6 +237,17 @@
         <button class="taskbar__button" type="button" data-action="bloquear-terminal">Bloquear terminal</button>
       </div>
     </footer>
+
+    <!-- ==========================================================
+         OVERLAY — bloqueo de terminal, activado por "Bloquear terminal"
+         ========================================================== -->
+    <div class="lock-overlay" id="lock-overlay" role="dialog" aria-modal="true" aria-labelledby="lock-overlay-title" aria-hidden="true">
+      <div class="lock-overlay__content">
+        <div class="lock-overlay__logo" aria-hidden="true"></div>
+        <p id="lock-overlay-title" class="lock-overlay__title">Terminal bloqueado — Acceso restringido</p>
+        <button type="button" class="lock-overlay__reactivate" id="lock-overlay-reactivate">Reactivar sesión</button>
+      </div>
+    </div>
 
   </div>
 

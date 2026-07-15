@@ -9,9 +9,9 @@ build tools: se abre `index.html` directamente en el navegador.
 
 ```
 wayman/
-├── index.html      header / dock / board (board__grid + cards) / keyboard-zone / footer
-├── styles.css      @font-face + paleta + diseño visual completo + responsive
-├── script.js       Reloj corporativo + terminal de acceso + teclado virtual dividido
+├── index.html      header / body (dock + board, con keyboard-zone superpuesta) / footer
+├── styles.css      @font-face + paleta + diseño visual completo + animaciones + responsive
+├── script.js       Reloj + terminal (con efecto matrix) + teclado virtual + taskbar
 ├── fonts/
 │   └── AUTOMATRON_NUMBERSDEC.TTF   Tipografía decorativa "alienígena" (fuente global)
 └── README.md       Este archivo (bitácora del proyecto)
@@ -124,10 +124,171 @@ wayman/
       vectorial, y un `<img>` no puede usarlo directamente. Cuando toque
       maquetar el logo hace falta exportarlo a SVG o PNG (por ejemplo a
       `img/logo-graycris.svg`) y sustituir el placeholder hexagonal actual.
-- [ ] Interactividad: usar los `data-module` del dock, `data-panel` de las
-      tarjetas y `data-action` de los botones para cablear selección de
-      módulo activo, focus/expansión de tarjeta y acciones reales de consola
-      (los puntos de extensión ya están comentados en `script.js`).
+- [ ] Interactividad del **dock** y las **tarjetas** (selección de módulo
+      activo, focus/expansión) — sigue pendiente, punto de extensión
+      comentado en `script.js`. La de la **taskbar** ya está resuelta (ver
+      abajo).
+
+## Interactividad de la taskbar (los 4 botones inferiores)
+
+- [x] Un solo listener de clic **delegado en `.taskbar`** (no uno por
+      botón) — confirmado leyendo el propio código: solo hay un
+      `addEventListener('click', ...)` sobre el contenedor.
+- [x] Hover: puro CSS (`:hover`, sin JS) — borde y texto pasan a
+      `--accent-red` con `box-shadow` de glow, más `transform: scale(1.02)`,
+      transición de 180ms `ease-out`.
+- [x] Clic → ripple: un `<span class="ripple">` se crea en el punto exacto
+      del clic (ancho/alto/posición van por fuerza en `style` inline, porque
+      dependen de la coordenada real; el efecto en sí —color, escala,
+      desvanecido— es CSS/`@keyframes`) y se borra solo del DOM al terminar
+      su animación (`animationend`, con un `setTimeout` de red por si ese
+      evento no llegara). Clics rápidos repetidos generan varios ripples
+      independientes que conviven y se limpian cada uno por su cuenta, sin
+      acumularse.
+- [x] Tras el ripple, según `data-action`: los tres primeros botones
+      muestran una frase en `#system-log` (una cajita que flota justo
+      encima de la taskbar, fade+slide de 250ms) que se autodesvanece a los
+      4.5s — y si llega otro clic antes de que desaparezca, el temporizador
+      se cancela y se reinicia limpio con el mensaje nuevo, sin parpadeos.
+      "Bloquear terminal" en cambio abre `#lock-overlay`: overlay de
+      pantalla completa con blur fuerte del fondo, el hexágono del logo,
+      "Terminal bloqueado — Acceso restringido" (con el mismo `pulse-glow`
+      de los títulos de tarjeta) y un botón "Reactivar sesión" que lo
+      cierra. Mientras está abierto, el teclado físico deja de escribir en
+      la terminal (chequeo añadido al `keydown` existente) y los clics no
+      llegan a nada de detrás (el overlay los intercepta).
+- [x] Verificado en navegador real: transform en hover, conteo de nodos
+      `.ripple` en el DOM antes/después de la animación y tras una ráfaga de
+      5 clics seguidos (confirma que no se acumulan), el mensaje cambiando
+      correctamente al clicar otro botón antes de que desaparezca el
+      anterior, el auto-ocultado a los ~4.5s, y en el overlay: el foco
+      moviéndose al botón de reactivar, la terminal ignorando tecleo físico
+      mientras está bloqueada, un clic a una tecla del teclado virtual de
+      abajo sin efecto mientras el overlay está encima, y que todo vuelve a
+      funcionar tras reactivar.
+
+## Auditoría completa del proyecto
+
+Revisión de `index.html` + `styles.css` + `script.js` completos (no solo lo
+último tocado), con dos bugs reales encontrados y arreglados:
+
+- **Fix — dead space enorme en monitores grandes (1920×1080, 2560×1440).**
+  El breakpoint `@media (min-width: 1600px)` limitaba las tarjetas a un
+  ancho máximo fijo (340px) con `auto-fit`. Con más ancho disponible del que
+  hacía falta para las tarjetas existentes, `auto-fit` seguía calculando una
+  columna "de más" que colapsaba a 0px pero ya había empujado el reparto del
+  espacio sobrante a `justify-content: center` — verificado en 2560px de
+  ancho: ~590px muertos a cada lado. Arreglo: igual que el resto de
+  breakpoints, usar `minmax(360px, 1fr)` (las columnas absorben el espacio
+  en vez de dejarlo como margen) y hacer que la terminal ocupe más columnas
+  (`span 3` en vez de `span 2`, ya sin necesitar 2 filas) para aprovechar
+  mejor el ancho de sobra. Confirmado: en 1920×1080 ya no queda espacio
+  muerto (la fila de la terminal queda completa junto con "Nota"); en
+  2560×1440 el hueco que queda es mucho más modesto y se lee como diseño
+  intencional, no como un bug.
+- **Fix — el `@media (prefers-reduced-motion: reduce)` no estaba realmente
+  al final del archivo**, pese a que el propio comentario lo decía: quedó
+  encajado entre los breakpoints de 720px y 480px por un `Edit` mal
+  apuntado en una pasada anterior. No causaba ningún bug funcional (usa
+  `!important`, que gana pase lo que pase el orden), pero sí hacía el
+  archivo más confuso de seguir. Movido al final de verdad.
+- **Sin animaciones duplicadas ni listeners huérfanos.** Las 5
+  `@keyframes` (`pulse-glow`, `breathe`, `glitch-shift-a/b`,
+  `ripple-expand`) tienen nombres únicos; cada listener (`click` delegado
+  en `.taskbar`, `keydown` de la terminal, `click`/`touchstart` del
+  fullscreen, uno por tecla del teclado virtual) se registra una sola vez
+  al cargar el script, sin bucles que los re-adjunten.
+- **Sin `requestAnimationFrame` en ningún sitio** (todo lo ambiental es CSS
+  puro, corre en el compositor). El único `setInterval` (el reloj) no tiene
+  ningún escenario de limpieza pendiente porque nada en la app recrea
+  elementos ni reinicia el script — vive mientras viva la página, que es lo
+  correcto para un reloj. Los `setTimeout` (fade del reloj, máquina de
+  escribir, glitch, ripple, log de sistema) o bien terminan solos
+  (recursión que para cuando ya no hay más texto/no hay reduced-motion) o
+  bien cancelan explícitamente el anterior antes de programar uno nuevo
+  (`logHideTimer` en el log de sistema) — no hay timers huérfanos.
+- **Fuente verificada de verdad, no solo leída en el CSS**: con
+  `document.fonts` confirmé que `Automatron` carga (`status: "loaded"`) y
+  que el `font-family` computado incluye el fallback
+  (`Automatron, "Courier New", monospace`); además bloqueé a propósito la
+  petición del `.ttf` para simular un fallo de carga y confirmé que el
+  texto se sigue viendo bien con la fuente de respaldo monoespaciada.
+
+## Teclado superpuesto + más animación ambiental + optimización
+
+- [x] **Teclado superpuesto sobre el board** en vez de tener su propia fila:
+      comparte celda de grid con `.board` (`align-self: end`, más bajo que
+      antes), con un margen lateral/inferior para que las tarjetas se vean
+      alrededor y a través del cristal en los bordes. Bug real encontrado al
+      hacerlo: si solo el teclado tiene `grid-column`/`grid-row` explícitos,
+      el grid trata esa celda como reservada y `.board` (sin posición
+      explícita) se auto-coloca en una fila nueva para "evitarla" en vez de
+      compartirla — hubo que hacer explícitas también `.dock` y `.board`.
+- [x] **Círculo central del teclado, ahora totalmente opaco** (antes era un
+      aro de cristal translúcido): degradado con colores 100% opacos, sin
+      canal alfa, y sin `backdrop-filter` (que ya no tenía sentido — no hay
+      nada "detrás" que se pueda ver a través de una superficie opaca).
+- [x] **Gráfico animado tipo bolsa** en el hueco que quedaba vacío bajo la
+      lista de métricas de INDICADORES CORPORATIVOS: línea de precio en SVG
+      (con relleno degradado debajo), un barrido de luz cruzándola cada 5s
+      (mismo truco de `translateX` que el pulso de circuito) y una mini
+      barra de "volumen" con 6 barras en bucle escalonado.
+- [x] Animaciones ambientales nuevas, todas en bucle:
+      - **Pulso de circuito**: una chispa recorre la línea divisoria del
+        header y del footer de punta a punta (`translateX` de -100% a 500%
+        del propio ancho del elemento — así con un `width:20%` cruza todo
+        el contenedor sin animar `left`, que dispara layout).
+      - **Neón + flotación en las 44 teclas**: cada tecla respira en
+        opacidad (`pulse-glow`) y su letra flota un par de px
+        (`breathe`) — desfasado por columna vía una custom property
+        heredada (`--key-delay`; `animation-delay` normal no hereda,
+        las custom properties sí).
+      - **Popup al pulsar una tecla**: aparece el carácter en grande justo
+        encima, con fade+scale, y se borra solo del DOM — igual que el
+        ripple de la taskbar. También se dispara al escribir con el
+        teclado físico (busca la tecla virtual equivalente por carácter).
+      - **Efecto "matrix" al escribir en la terminal**: el último carácter
+        cicla 4 veces por glifos aleatorios (katakana, símbolos, letras)
+        antes de asentarse en el real; con `decodeToken` para invalidar
+        limpiamente un ciclo anterior si se teclea de nuevo antes de que
+        termine (no se pisan/acumulan si se escribe rápido). Color rojo de
+        la app, no verde — por mantener la paleta, no la referencia literal.
+- [x] **Bug real encontrado al verificar**: la animación de "flotación"
+      (`breathe`, `translateY`) estaba puesta directamente en el `<button>`
+      de cada tecla. Playwright se negaba a hacer clic ("element is not
+      stable") porque el botón nunca dejaba de moverse — el mismo problema
+      afecta a un dedo/ratón real apuntando a un objetivo que no para quieto.
+      Arreglo: la letra vive en un `<span>` interno que es el que flota; el
+      `<button>` (la zona clicable) ya no se mueve nunca.
+- [x] **Pasada de rendimiento** (a raíz de pedir "animaciones muy fluidas"):
+      - `backdrop-filter` en las 44 teclas + el círculo central eliminado:
+        es de las propiedades más caras para la GPU, y tenerla en 44
+        elementos a la vez (con `pulse-glow` corriendo en todos) era el
+        cuello de botella más grande de la interfaz. La zona del teclado ya
+        pone su propio `backdrop-filter` de conjunto; no hacía falta
+        repetirlo por tecla. Confirmado con
+        `getComputedStyle().backdropFilter` sobre todos los elementos:
+        46 → 2.
+      - `will-change` quitado de las 44 teclas + sus 44 `<span>` de letra:
+        88 hints explícitos pidiendo capas de composición persistentes es
+        demasiado ("moderación", como se pidió hace unas cuantas vueltas)
+        para animaciones tan simples que el navegador ya promociona bien
+        por su cuenta. Confirmado: ~102 → 12 elementos con `will-change`
+        activo (los que quedan: 6 títulos de tarjeta, 1 indicador de
+        conexión, 5 iconos del dock).
+      - Scanlines: quitado el `mix-blend-mode: overlay` — un blend-mode
+        obliga a recomponer ese overlay de pantalla completa cada vez que
+        algo cambia debajo, y con tantas animaciones en bucle nuevas eso es
+        constantemente. Ahora son líneas oscuras simples sin blend (además
+        más parecido a como se ven en la práctica los huecos entre líneas
+        de barrido de un CRT real).
+- [x] Todo lo anterior verificado en navegador real: layout del teclado
+      compartiendo celda con el board (antes/después del bug del grid),
+      clic estable en las teclas (antes fallaba con "element is not
+      stable", ahora no), el efecto matrix capturado en pleno ciclo
+      (`1` → `1V` → `1キ` → `1イ` → `1y`), tecleo rápido cruzando ambas
+      manos sin corrupción, y los contadores de `backdrop-filter`/
+      `will-change` antes/después de la pasada de rendimiento.
 
 ## Notas técnicas
 
@@ -135,11 +296,16 @@ wayman/
   `AUTOMATRON NUMBERSDEC.TTF` (con espacio); la moví a
   `fonts/AUTOMATRON_NUMBERSDEC.TTF` (sin espacio) para que coincida con la
   estructura pedida y evitar problemas de espacios en la URL del `@font-face`.
-- El layout es un grid de 4 filas (`header / body / keyboard-zone / footer`)
-  y dentro de `body` otro grid de 2 columnas (`dock / board`). `.dock` y
-  `.board` hacen scroll interno de forma independiente; el resto de la
-  interfaz no se mueve. Como el teclado ahora ocupa una franja fija abajo,
-  `.board` normalmente necesita scroll propio para ver las 6 tarjetas.
+- El layout es un grid de 3 filas (`header / body / footer`) y dentro de
+  `body` otro grid de 2 columnas (`dock / board`). `.keyboard-zone` NO tiene
+  fila propia: comparte celda (`grid-column`/`grid-row` explícitos) con
+  `.board` y se pega abajo con `align-self: end`, flotando por encima en vez
+  de empujarlo — por eso `.dock`/`.board`/`.keyboard-zone` los tres llevan
+  `grid-column`/`grid-row` explícitos (si solo el teclado los tuviera, el
+  grid trataría esa celda como "ocupada" y desviaría a `.board` a una fila
+  nueva en vez de dejarlo compartirla — pasó, se verificó y se arregló).
+  `.dock` y `.board` hacen scroll interno de forma independiente; el resto
+  de la interfaz no se mueve.
 - Resolución de referencia: **1340×800** (tablet horizontal), que son los
   estilos base (sin media query). A partir de ahí hay una escalera de
   breakpoints: `1600px` (monitores grandes: limita el ancho de las tarjetas

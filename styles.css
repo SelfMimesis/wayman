@@ -106,20 +106,25 @@ body::after {
   z-index: 0;
 }
 
-/* Scanlines — líneas horizontales sutiles tipo CRT sobre toda la pantalla */
+/* Scanlines — líneas horizontales sutiles tipo CRT sobre toda la pantalla.
+   Sin mix-blend-mode a propósito: un blend-mode obliga al navegador a
+   recomponer este overlay de pantalla completa cada vez que CUALQUIER cosa
+   debajo cambia (y con tantas animaciones en bucle en la interfaz, eso es
+   constantemente) — con líneas oscuras simples y sin blend, es un overlay
+   plano que se compone una vez y ya, más parecido además a cómo se ven en
+   la práctica los huecos entre líneas de barrido de un CRT real. */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   background-image: repeating-linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0.05) 0px,
-    rgba(255, 255, 255, 0.05) 1px,
+    rgba(0, 0, 0, 0.12) 0px,
+    rgba(0, 0, 0, 0.12) 1px,
     transparent 1px,
     transparent 3px
   );
-  mix-blend-mode: overlay;
-  opacity: 0.45;
+  opacity: 0.5;
   pointer-events: none;
   z-index: 5;
 }
@@ -142,6 +147,13 @@ body::before {
   50% { transform: translateY(-2px); }
 }
 
+/* Barras tipo "volumen de bolsa": crecen/encogen desde la base
+   (transform-origin:bottom + scaleY, nunca la propiedad height). */
+@keyframes bar-pulse {
+  0%, 100% { transform: scaleY(0.65); opacity: 0.45; }
+  50% { transform: scaleY(1); opacity: 0.9; }
+}
+
 @keyframes glitch-shift-a {
   0%, 100% { opacity: 0; transform: translateX(0); }
   20% { opacity: 0.65; transform: translateX(-2px); }
@@ -154,6 +166,15 @@ body::before {
   45% { opacity: 0; transform: translateX(0); }
 }
 
+/* "Circuito": una chispa de luz recorre una línea divisoria de punta a
+   punta. El elemento mide 20% del contenedor y se traslada de -100% a
+   500% de SU PROPIO ancho — eso equivale a recorrer de -20% a 120% del
+   contenedor (fuera de vista en ambos extremos), solo con transform. */
+@keyframes circuit-pulse {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(500%); }
+}
+
 /* --------------------------------------------------------------------------
    .desktop — contenedor raíz de pantalla completa (3 filas: header/body/footer)
    -------------------------------------------------------------------------- */
@@ -161,7 +182,7 @@ body::before {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-rows: auto 1fr auto auto;
+  grid-template-rows: auto 1fr auto;
   width: 100vw;
   height: 100vh;
   text-transform: uppercase;
@@ -171,6 +192,7 @@ body::before {
    Header
    -------------------------------------------------------------------------- */
 .desktop__header {
+  position: relative; /* ancla para el pulso de circuito del ::after */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -178,6 +200,19 @@ body::before {
   gap: clamp(0.5rem, 1.5vw, 1rem);
   padding: clamp(0.6rem, 1.5vw, 1rem) clamp(0.75rem, 2.5vw, 1.5rem);
   border-bottom: 1px solid var(--line);
+}
+
+.desktop__header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 20%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-red-2), var(--accent-red), var(--accent-red-2), transparent);
+  animation: circuit-pulse 7s linear infinite;
+  pointer-events: none;
+  will-change: transform;
 }
 
 .header__brand {
@@ -195,6 +230,7 @@ body::before {
   background: currentColor;
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
   filter: drop-shadow(0 0 4px var(--glow));
+  animation: pulse-glow 3.8s var(--ease-organic) infinite;
 }
 
 .brand__text {
@@ -257,11 +293,20 @@ body::before {
   transition: opacity 0.3s var(--ease-snap);
 }
 
-/* Pulso lento en el indicador de conexión segura, para reforzar que el
-   sistema está "vivo" y monitoreando activamente. */
+/* Pulso lento en los tres indicadores de estado (conexión, ubicación,
+   auditoría), cada uno a su propio ritmo, para reforzar que el sistema
+   está "vivo" y monitoreando activamente — no solo el de conexión segura. */
 .status__item--secure .status__value {
   animation: pulse-glow 4.6s var(--ease-organic) 0.3s infinite;
   will-change: opacity;
+}
+
+.status__item--location .status__value {
+  animation: pulse-glow 6.2s var(--ease-organic) 1s infinite;
+}
+
+.status__item--audit .status__value {
+  animation: pulse-glow 5.4s var(--ease-organic) 1.8s infinite;
 }
 
 /* --------------------------------------------------------------------------
@@ -270,11 +315,23 @@ body::before {
 .desktop__body {
   display: grid;
   grid-template-columns: minmax(90px, 150px) 1fr;
+  grid-template-rows: 1fr; /* fila explícita para que .keyboard-zone se ancle a su final */
   min-height: 0; /* permite que dock/board hagan scroll interno sin estirar la fila */
 }
 
 /* --- Dock lateral izquierdo -------------------------------------------- */
 .dock {
+  /* Explícito a propósito: .keyboard-zone reclama la celda de .board
+     (col2/fila1) con posición explícita, y el grid coloca primero los
+     elementos con posición explícita — si .dock y .board se quedaran en
+     automático, el motor los trataría como si tuvieran que EVITAR esa
+     celda ya reclamada y .board acabaría en una fila nueva en vez de
+     compartir la de verdad con el teclado (visto en la verificación:
+     .board aparecía arrancando en x=0, como si estuviera debajo del dock
+     en vez de al lado). Con las tres celdas explícitas, comparten sitio
+     a propósito y no hay ambigüedad. */
+  grid-column: 1;
+  grid-row: 1;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
@@ -341,6 +398,9 @@ body::before {
    elemento que se estira, sus filas se miden contra esa altura fija en vez
    de contra el contenido, y se encogen al mínimo). */
 .board {
+  /* Explícito a propósito, igual que .dock — ver el comentario ahí. */
+  grid-column: 2;
+  grid-row: 1;
   min-height: 0;
   overflow-y: auto;
   padding: clamp(0.6rem, 1.5vw, 1.25rem);
@@ -404,6 +464,30 @@ body::before {
 .board__grid .card:nth-child(5) .card__title { animation-duration: 3.7s; animation-delay: 1.2s; }
 .board__grid .card:nth-child(6) .card__title { animation-duration: 4.1s; animation-delay: 0.6s; }
 
+/* Chispa de circuito recorriendo el borde superior de cada tarjeta (mismo
+   truco de translateX que el header/footer). clip-path en .card recorta
+   también este ::after a la forma de "ticket", así que se apaga un
+   instante justo al cruzar las esquinas cortadas — efecto secundario
+   aceptable, no se nota casi con el ancho tan chico (20%) del brillo. */
+.card::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 18%;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, var(--accent-red-2), var(--accent-red), var(--accent-red-2), transparent);
+  animation: circuit-pulse 8s linear infinite;
+  pointer-events: none;
+}
+
+.board__grid .card:nth-child(1)::after { animation-duration: 7.5s; animation-delay: 0.6s; }
+.board__grid .card:nth-child(2)::after { animation-duration: 8.6s; animation-delay: 1.4s; }
+.board__grid .card:nth-child(3)::after { animation-duration: 7.9s; animation-delay: 2.1s; }
+.board__grid .card:nth-child(4)::after { animation-duration: 9.2s; animation-delay: 0.3s; }
+.board__grid .card:nth-child(5)::after { animation-duration: 8.1s; animation-delay: 1.8s; }
+.board__grid .card:nth-child(6)::after { animation-duration: 8.8s; animation-delay: 0.9s; }
+
 .card__meta,
 .card__body {
   padding-bottom: 0.5rem;
@@ -457,6 +541,109 @@ body::before {
   color: var(--accent-red);
   text-align: right;
 }
+
+/* Gráfico decorativo tipo "bolsa" que llena el hueco bajo la lista de
+   métricas de INDICADORES CORPORATIVOS. flex:1 para que crezca y ocupe
+   exactamente el espacio sobrante de la tarjeta, sea cual sea su alto. */
+.metric-chart {
+  position: relative;
+  flex: 1;
+  min-height: 110px;
+  margin-top: 0.25rem;
+  overflow: hidden;
+}
+
+.metric-chart__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.metric-chart__stop-a {
+  stop-color: var(--accent-red);
+  stop-opacity: 0.32;
+}
+
+.metric-chart__stop-b {
+  stop-color: var(--accent-red);
+  stop-opacity: 0;
+}
+
+.metric-chart__area {
+  fill: url(#metric-chart-fill);
+  stroke: none;
+  animation: pulse-glow 4.4s var(--ease-organic) infinite;
+}
+
+/* La "energía" fluye por la línea de verdad (stroke-dashoffset animado, no
+   solo un brillo decorativo encima de una forma estática): un patrón de
+   guiones que se desplaza sin parar da el efecto de corriente/datos en
+   movimiento real sobre el propio trazo. */
+@keyframes chart-flow {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+
+.metric-chart__line {
+  fill: none;
+  stroke: var(--accent-red);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 7 5;
+  filter: drop-shadow(0 0 4px var(--glow));
+  animation: chart-flow 1.3s linear infinite;
+}
+
+/* Segunda línea, más tenue, tipo "media móvil de comparación" — refuerza
+   la lectura de panel de bolsa y da más profundidad al gráfico. */
+.metric-chart__line-secondary {
+  fill: none;
+  stroke: var(--accent-red-dim);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 5 4;
+  opacity: 0.6;
+  animation: chart-flow 2.1s linear infinite reverse;
+}
+
+/* Barrido de luz cruzando el gráfico, sugiriendo datos "en vivo" — mismo
+   truco de transform:translateX que el pulso de circuito del header/footer. */
+.metric-chart__sweep {
+  position: absolute;
+  inset: 0;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, rgba(255, 110, 110, 0.28), transparent);
+  animation: circuit-pulse 5s linear infinite;
+  pointer-events: none;
+}
+
+.metric-chart__bars {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.4rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 34px;
+}
+
+.metric-chart__bars span {
+  width: 4px;
+  height: 100%;
+  transform-origin: bottom;
+  background: var(--accent-red-dim);
+  animation: bar-pulse 2.4s var(--ease-organic) infinite;
+}
+
+.metric-chart__bars span:nth-child(1) { height: 35%; animation-delay: 0s; }
+.metric-chart__bars span:nth-child(2) { height: 60%; animation-delay: 0.2s; }
+.metric-chart__bars span:nth-child(3) { height: 42%; animation-delay: 0.4s; }
+.metric-chart__bars span:nth-child(4) { height: 80%; animation-delay: 0.1s; }
+.metric-chart__bars span:nth-child(5) { height: 50%; animation-delay: 0.3s; }
+.metric-chart__bars span:nth-child(6) { height: 68%; animation-delay: 0.5s; }
+.metric-chart__bars span:nth-child(7) { height: 58%; animation-delay: 0.6s; }
 
 .card__quote {
   padding: 0.5rem 0 0.5rem 0.9rem;
@@ -542,21 +729,40 @@ body::before {
    el clip-path a diferencia de un border/outline normal.
    -------------------------------------------------------------------------- */
 .keyboard-zone {
+  /* Comparte la celda de .board dentro del grid de .desktop__body (misma
+     grid-column/row) y se pega abajo con align-self:end en vez de tener
+     fila propia: así queda SUPERPUESTO sobre el board, no una franja
+     estructural aparte, y las tarjetas se ven detrás/alrededor. */
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  justify-self: stretch;
+  z-index: 2;
+
+  --card-cut: 14px;
   position: relative;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  padding: clamp(0.5rem, 1.2vw, 0.9rem) clamp(1.5rem, 6vw, 5rem);
-  /* Efecto cristal en toda la zona: fondo casi transparente + blur fuerte
-     del contenido detrás (degradado/ruido del body), con un brillo tenue
-     arriba simulando el reflejo de una superficie de vidrio. */
+  margin: 0 2rem 0.75rem;
+  padding: clamp(0.35rem, 1vw, 0.6rem) clamp(1rem, 4vw, 3rem);
+  clip-path: polygon(
+    var(--card-cut) 0,
+    calc(100% - var(--card-cut)) 0,
+    100% var(--card-cut),
+    100% 100%,
+    0 100%,
+    0 var(--card-cut)
+  );
+  /* Efecto cristal: fondo casi transparente + blur fuerte del contenido
+     detrás (tarjetas del board, degradado/ruido del body), con un brillo
+     tenue arriba simulando el reflejo de una superficie de vidrio. */
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 50%),
-    linear-gradient(180deg, rgba(58, 20, 20, 0.08), rgba(10, 20, 24, 0.12));
+    linear-gradient(180deg, rgba(58, 20, 20, 0.1), rgba(10, 20, 24, 0.14));
   backdrop-filter: blur(14px) saturate(1.4);
   -webkit-backdrop-filter: blur(14px) saturate(1.4);
   box-shadow:
     inset 0 1px 0 rgba(255, 150, 150, 0.16),
     inset 0 -1px 0 rgba(255, 150, 150, 0.1);
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 10px var(--glow));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -564,12 +770,12 @@ body::before {
 }
 
 .keyboard {
-  --key-w: 3.8rem;
-  --key-h: 2.5rem;
+  --key-w: 3rem;
+  --key-h: 1.9rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.5rem;
+  gap: 1.25rem;
   width: 100%;
 }
 
@@ -577,57 +783,83 @@ body::before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.4rem;
   flex-shrink: 0;
 }
 
 .keyboard__columns {
   display: flex;
-  gap: 0.55rem;
+  gap: 0.4rem;
   align-items: flex-start;
 }
 
 .keyboard__column {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 /* Escalonado por columna: cada dedo alcanza más o menos lejos, así que la
-   columna del dedo medio se desplaza más abajo que la del meñique/índice. */
-.keyboard__column:nth-child(1) { margin-top: 0; }
-.keyboard__column:nth-child(2) { margin-top: 0.6rem; }
-.keyboard__column:nth-child(3) { margin-top: 1rem; }
-.keyboard__column:nth-child(4) { margin-top: 0.6rem; }
-.keyboard__column:nth-child(5) { margin-top: 0.1rem; }
+   columna del dedo medio se desplaza más abajo que la del meñique/índice.
+   --key-delay es una custom property (SÍ hereda, a diferencia de
+   animation-delay) que .keyboard__key lee más abajo para que las teclas de
+   cada columna respiren/brillen desfasadas entre sí. */
+.keyboard__column:nth-child(1) { margin-top: 0; --key-delay: 0s; }
+.keyboard__column:nth-child(2) { margin-top: 0.4rem; --key-delay: 0.3s; }
+.keyboard__column:nth-child(3) { margin-top: 0.7rem; --key-delay: 0.6s; }
+.keyboard__column:nth-child(4) { margin-top: 0.4rem; --key-delay: 0.2s; }
+.keyboard__column:nth-child(5) { margin-top: 0.05rem; --key-delay: 0.5s; }
 
 .keyboard__thumbs {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.2rem;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
 }
 
 .keyboard__key {
+  /* Sin backdrop-filter aquí a propósito: son 44 teclas, y backdrop-filter
+     es de las propiedades CSS más caras para la GPU — tenerlo en cada una
+     (encima con pulse-glow corriendo en las 44 a la vez) era el mayor
+     cuello de botella de rendimiento de toda la interfaz. La zona del
+     teclado ya tiene su propio backdrop-filter para el efecto cristal de
+     conjunto; cada tecla no necesita repetirlo. */
+  position: relative; /* ancla para el popup del carácter al pulsar */
   width: var(--key-w);
   height: var(--key-h);
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(155deg, rgba(255, 90, 90, 0.1), rgba(74, 24, 24, 0.14));
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
+  background: linear-gradient(155deg, rgba(255, 90, 90, 0.16), rgba(74, 24, 24, 0.22));
   clip-path: polygon(14% 0%, 86% 0%, 100% 22%, 100% 78%, 86% 100%, 14% 100%, 0% 78%, 0% 22%);
   border: none;
   color: var(--accent-red-dim);
   font-size: 0.9rem;
   cursor: pointer;
+  /* Neón que respira: SOLO opacidad aquí. El translateY de "flotación" va
+     en el <span> interno (.keyboard__key-label), no en el <button>, para
+     que la zona clicable/táctil no esté todo el rato desplazándose unos
+     px — con el botón moviéndose, algunos navegadores (y dedos reales)
+     pueden fallar el clic por apuntar a donde el botón YA NO está.
+     Sin will-change aquí: son 44 teclas, y un hint explícito en cada una
+     pide 44 capas de composición persistentes a la GPU — con animaciones
+     tan simples (opacidad/transform) el navegador ya las promociona bien
+     por su cuenta al arrancar, así que el ahorro de memoria compensa el
+     mínimo respingo de la primera vez que empiezan a animar. */
+  animation: pulse-glow 2.6s var(--ease-organic) var(--key-delay, 0s) infinite;
   text-shadow: 0 0 4px var(--glow);
   box-shadow:
     inset 0 0 0 1px rgba(255, 130, 130, 0.3),
     inset 0 3px 5px rgba(255, 160, 160, 0.08),
     inset 0 -4px 8px rgba(0, 0, 0, 0.3);
   filter: drop-shadow(0 0 4px var(--glow));
+}
+
+/* El <span> con la letra "flota" (breathe); el <button> que lo contiene
+   no se mueve, así el hitbox del clic/toque queda quieto. */
+.keyboard__key-label {
+  display: inline-block;
+  animation: breathe 3.4s var(--ease-organic) var(--key-delay, 0s) infinite;
 }
 
 .keyboard__key:hover {
@@ -645,15 +877,43 @@ body::before {
   letter-spacing: 0.03em;
 }
 
+/* Popup del carácter al pulsar una tecla (nace en script.js, se borra sola
+   del DOM al terminar su propia animación — mismo patrón que .ripple). */
+@keyframes key-popup-anim {
+  0% { opacity: 0; transform: translate(-50%, 6px) scale(0.6); }
+  30% { opacity: 1; transform: translate(-50%, 0) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -10px) scale(1); }
+}
+
+.key-popup {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  margin-bottom: 0.4rem;
+  padding: 0.3rem 0.55rem;
+  background: var(--bg-panel-2);
+  border: 1px solid var(--accent-red);
+  color: var(--accent-red);
+  font-size: 1rem;
+  text-shadow: 0 0 6px var(--glow);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 0);
+  animation: key-popup-anim 450ms var(--ease-snap) forwards;
+  z-index: 5;
+}
+
 .keyboard__center {
   width: 2.6rem;
   height: 2.6rem;
   flex-shrink: 0;
   align-self: center;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, rgba(255, 90, 90, 0.12), transparent 70%);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
+  /* Totalmente opaco (stops de degradado sin canal alfa) — y por eso sin
+     backdrop-filter: sobre una superficie 100% opaca el blur de lo que hay
+     detrás no se ve nunca, así que sería GPU gastada en un efecto invisible. */
+  background: radial-gradient(circle at 35% 30%, #8a2828 0%, #2a0e0e 60%, #150808 100%);
   box-shadow: inset 0 0 0 2px rgba(255, 130, 130, 0.35);
   filter: drop-shadow(0 0 6px var(--glow));
 }
@@ -662,12 +922,27 @@ body::before {
    Footer: barra de acciones
    -------------------------------------------------------------------------- */
 .desktop__footer {
+  position: relative; /* ancla para .system-log, que flota justo encima */
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 1rem;
   padding: clamp(0.5rem, 1.2vw, 0.75rem) clamp(0.75rem, 2.5vw, 1.5rem);
   border-top: 1px solid var(--line);
+}
+
+.desktop__footer::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -1px;
+  width: 20%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-red-2), var(--accent-red), var(--accent-red-2), transparent);
+  animation: circuit-pulse 9s linear infinite;
+  animation-delay: 2s;
+  pointer-events: none;
+  will-change: transform;
 }
 
 .taskbar {
@@ -677,6 +952,8 @@ body::before {
 }
 
 .taskbar__button {
+  position: relative;
+  overflow: hidden; /* recorta el ripple a la forma del botón */
   min-width: 96px;
   padding: 0.6rem 1.25rem;
   background: var(--bg-panel);
@@ -685,11 +962,146 @@ body::before {
   cursor: pointer;
   font-size: 0.8rem;
   letter-spacing: 0.05em;
+  transition: transform 180ms ease-out, border-color 180ms ease-out,
+    color 180ms ease-out, background-color 180ms ease-out, box-shadow 180ms ease-out;
 }
 
 .taskbar__button:hover {
   background: var(--bg-panel-2);
-  color: var(--accent-red-2);
+  color: var(--accent-red);
+  border-color: var(--accent-red);
+  transform: scale(1.02);
+  box-shadow: 0 0 12px var(--glow);
+}
+
+/* Ripple de clic: nace en script.js en el punto exacto del clic (ancho/alto/
+   posición son por fuerza dinámicos, así que van en style inline; el efecto
+   en sí — color, escala, desvanecido — es puramente CSS/@keyframes). Se
+   elimina del DOM solo, al terminar su animación. */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 43, 43, 0.5), rgba(255, 43, 43, 0) 70%);
+  transform: scale(0);
+  opacity: 0.85;
+  pointer-events: none;
+  animation: ripple-expand 550ms ease-out forwards;
+}
+
+@keyframes ripple-expand {
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Log de sistema: mensaje flotante encima de la taskbar, fade+slide de
+   entrada/salida. script.js le cambia el texto y alterna is-visible. */
+.system-log {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-bottom: 0.75rem;
+  max-width: min(90vw, 32rem);
+  padding: 0.6rem 1.1rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  color: var(--accent-red);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(8px);
+  transition: opacity 250ms var(--ease-snap), transform 250ms var(--ease-snap);
+  filter: drop-shadow(0 0 6px var(--glow));
+}
+
+.system-log.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* --------------------------------------------------------------------------
+   Overlay de bloqueo de terminal (botón "Bloquear terminal")
+   -------------------------------------------------------------------------- */
+.lock-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(74, 24, 24, 0.55), rgba(5, 8, 10, 0.94) 70%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms var(--ease-snap);
+}
+
+.lock-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lock-overlay__content {
+  --card-cut: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 2.5rem 3rem;
+  max-width: min(90vw, 32rem);
+  text-align: center;
+  background: linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border-top: 4px double var(--line);
+  border-bottom: 4px double var(--line);
+  clip-path: polygon(
+    var(--card-cut) 0,
+    calc(100% - var(--card-cut)) 0,
+    100% var(--card-cut),
+    100% 100%,
+    0 100%,
+    0 var(--card-cut)
+  );
+  filter: drop-shadow(0 0 14px var(--glow));
+}
+
+.lock-overlay__logo {
+  width: 64px;
+  height: 76px;
+  color: var(--accent-red);
+  background: currentColor;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  filter: drop-shadow(0 0 10px var(--glow));
+}
+
+.lock-overlay__title {
+  font-size: 1.1rem;
+  letter-spacing: 0.14em;
+  color: var(--accent-red);
+  text-shadow: 0 0 10px var(--glow);
+  animation: pulse-glow 3.5s var(--ease-organic) infinite;
+}
+
+.lock-overlay__reactivate {
+  padding: 0.6rem 1.5rem;
+  background: var(--bg-panel-2);
+  border: 1px solid var(--line);
+  color: var(--accent-red-dim);
+  cursor: pointer;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  transition: transform 180ms ease-out, border-color 180ms ease-out,
+    color 180ms ease-out, box-shadow 180ms ease-out;
+}
+
+.lock-overlay__reactivate:hover {
+  color: var(--accent-red);
+  border-color: var(--accent-red);
+  transform: scale(1.02);
+  box-shadow: 0 0 12px var(--glow);
 }
 
 /* --------------------------------------------------------------------------
@@ -698,11 +1110,23 @@ body::before {
    (monitores grandes) para cubrir cualquier tamaño de pantalla.
    -------------------------------------------------------------------------- */
 
-/* Monitores grandes: evita tarjetas gigantes y centra el grid de tarjetas */
+/* Monitores grandes: minmax(...,1fr) en vez de un max fijo, igual que el
+   resto de breakpoints — un max fijo (340px) deja que auto-fit calcule más
+   columnas "posibles" de las que hay tarjetas de una columna para llenar;
+   la columna sobrante colapsa a 0 pero ya empujó el reparto del espacio
+   sobrante a un justify-content:center con márgenes enormes a los lados en
+   vez de a las propias tarjetas (verificado: dejaba ~590px muertos a cada
+   lado en 2560px de ancho). Con 1fr las columnas absorben ese espacio
+   directamente. La terminal también ocupa más columnas aquí (y ya no
+   necesita 2 filas) para aprovechar mejor el ancho de sobra. */
 @media (min-width: 1600px) {
   .board__grid {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 340px));
-    justify-content: center;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  }
+
+  .card--terminal {
+    grid-column: span 3;
+    grid-row: span 1;
   }
 }
 
@@ -717,8 +1141,8 @@ body::before {
   }
 
   .keyboard {
-    --key-w: 3.1rem;
-    --key-h: 2.1rem;
+    --key-w: 2.6rem;
+    --key-h: 1.7rem;
   }
 }
 
@@ -729,11 +1153,21 @@ body::before {
     grid-template-rows: auto 1fr;
   }
 
+  /* Con 1 sola columna, dock pasa a fila 1 y board a fila 2 (antes eran
+     col1/col2 de la misma fila) — .keyboard-zone se reancla más abajo,
+     junto a .board, para seguir compartiendo su celda. */
   .dock {
+    grid-column: 1;
+    grid-row: 1;
     overflow-x: auto;
     overflow-y: hidden;
     border-right: none;
     border-bottom: 1px solid var(--line);
+  }
+
+  .board {
+    grid-column: 1;
+    grid-row: 2;
   }
 
   .dock__list {
@@ -760,31 +1194,25 @@ body::before {
     align-self: start;
   }
 
+  /* A partir de aquí .desktop__body pasa a 1 columna / 2 filas (dock
+     arriba, board abajo) — .keyboard-zone tiene que apuntar a la fila y
+     columna nuevas del board (antes era col2/fila1) para seguir
+     superpuesta sobre él en vez de sobre el dock. */
+  .keyboard-zone {
+    grid-column: 1;
+    grid-row: 2;
+    margin: 0 1rem 0.5rem;
+  }
+
   .keyboard {
-    --key-w: 2.5rem;
-    --key-h: 1.75rem;
+    --key-w: 2.2rem;
+    --key-h: 1.55rem;
     gap: 0.75rem;
   }
 
   .keyboard__center {
     width: 2.25rem;
     height: 2.25rem;
-  }
-}
-
-/* --------------------------------------------------------------------------
-   Accesibilidad: si el usuario prefiere menos movimiento, todas las
-   animaciones/transiciones CSS de arriba (pulso, respiración, glitch, fade
-   del reloj) se completan al instante en vez de reproducirse. Los efectos
-   que corren en JS (máquina de escribir, disparo del glitch) tienen su
-   propio chequeo de matchMedia en script.js, porque esta media query no
-   afecta a temporizadores de JavaScript.
-   -------------------------------------------------------------------------- */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
   }
 }
 
@@ -815,5 +1243,25 @@ body::before {
 
   .keyboard-zone {
     justify-content: flex-start;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Accesibilidad: si el usuario prefiere menos movimiento, todas las
+   animaciones/transiciones CSS de arriba (pulso, respiración, glitch, fade
+   del reloj) se completan al instante en vez de reproducirse. Los efectos
+   que corren en JS (máquina de escribir, disparo del glitch) tienen su
+   propio chequeo de matchMedia en script.js, porque esta media query no
+   afecta a temporizadores de JavaScript.
+
+   (Va al final a propósito: usa *, *::before, *::after — colocarla en medio
+   de los breakpoints de ancho la hacía más difícil de encontrar aunque el
+   !important ya garantizaba que ganara sin importar el orden.)
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }
