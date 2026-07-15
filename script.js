@@ -25,6 +25,29 @@
   setInterval(updateClock, 1000);
 
   // --------------------------------------------------------------------
+  // Pantalla completa: el primer toque/clic entra en fullscreen. Tocar el
+  // contenido de la página nunca saca de fullscreen (así se comportan los
+  // navegadores por defecto), así que no hace falta bloquear nada ahí. Si
+  // en algún momento se sale de fullscreen, el siguiente toque vuelve a
+  // entrar automáticamente.
+  //
+  // Límite real, no de este código: los navegadores reservan la tecla
+  // Escape (y algunos gestos del sistema) para salir de fullscreen SIEMPRE
+  // — es una medida de seguridad que una página no puede desactivar, para
+  // que ningún sitio pueda dejar a alguien atrapado en pantalla completa.
+  // Por eso esto garantiza "no se sale tocando nada", no "no se sale de
+  // ninguna forma".
+  // --------------------------------------------------------------------
+  function enterFullscreen() {
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  }
+
+  document.addEventListener('click', enterFullscreen);
+  document.addEventListener('touchstart', enterFullscreen, { passive: true });
+
+  // --------------------------------------------------------------------
   // Terminal de acceso + teclado virtual dividido (mano izquierda / derecha)
   //
   // Cada mano se arma por COLUMNAS (una por dedo: 1/Q/A/Z, 2/W/S/X, ...) en
