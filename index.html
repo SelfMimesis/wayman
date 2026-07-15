@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>GRAYCRIS // Terminal Ejecutivo — WAYMAN</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="desktop">
+
+    <!-- ==========================================================
+         HEADER — identidad corporativa + bloque de estado
+         ========================================================== -->
+    <header class="desktop__header">
+
+      <div class="header__brand">
+        <!-- PLACEHOLDER: logo GrayCris. Pendiente exportar el PDF vectorial
+             adjunto (2ud_ViniloCorteBrillante-Pegatina_15x5,6cm_LogoRobot.pdf)
+             a SVG/PNG y sustituir este bloque vacío. -->
+        <div class="brand__logo" aria-hidden="true"></div>
+        <div class="brand__text">
+          <span class="brand__name">GRAYCRIS CORPORATION</span>
+          <span class="brand__subtitle">Terminal ejecutivo privado — Acceso nivel Ónice</span>
+          <span class="brand__greeting">Buen día, director.</span>
+        </div>
+      </div>
+
+      <div class="header__status">
+
+        <div class="status__item status__item--clock">
+          <span class="status__label">Hora corporativa</span>
+          <!-- Valor inicial; script.js lo sobreescribe en tiempo real -->
+          <span class="status__value" id="corporate-clock">06:42</span>
+        </div>
+
+        <div class="status__item status__item--location">
+          <span class="status__label">Ubicación</span>
+          <span class="status__value">Plataforma de Prospección GC-7</span>
+        </div>
+
+        <div class="status__item status__item--secure">
+          <span class="status__label">Conexión</span>
+          <span class="status__value">ACTIVA</span>
+        </div>
+
+        <div class="status__item status__item--audit">
+          <span class="status__label">Canal de auditoría</span>
+          <span class="status__value">DESACTIVADO</span>
+        </div>
+
+      </div>
+
+    </header>
+
+    <!-- ==========================================================
+         BODY — dock lateral + área central de tarjetas
+         ========================================================== -->
+    <div class="desktop__body">
+
+      <nav class="dock" aria-label="Módulos">
+        <ul class="dock__list">
+          <li class="dock__item" data-module="prioridad">
+            <!-- PLACEHOLDER: icono real del módulo pendiente -->
+            <span class="dock__icon" aria-hidden="true"></span>
+            <span class="dock__label">Prioridad</span>
+          </li>
+          <li class="dock__item" data-module="agenda">
+            <span class="dock__icon" aria-hidden="true"></span>
+            <span class="dock__label">Agenda</span>
+          </li>
+          <li class="dock__item" data-module="indicadores">
+            <span class="dock__icon" aria-hidden="true"></span>
+            <span class="dock__label">Indicadores</span>
+          </li>
+          <li class="dock__item" data-module="alerta">
+            <span class="dock__icon" aria-hidden="true"></span>
+            <span class="dock__label">Alerta</span>
+          </li>
+          <li class="dock__item" data-module="nota">
+            <span class="dock__icon" aria-hidden="true"></span>
+            <span class="dock__label">Nota</span>
+          </li>
+        </ul>
+      </nav>
+
+      <main class="board">
+        <!-- Contenido real de cada panel. data-panel queda como gancho para
+             las animaciones/estilos que llegan en una pasada posterior.
+
+             .board hace scroll interno; .board__grid es el grid en sí. Se
+             separan en dos elementos a propósito: un grid con filas "auto"
+             que además es estirado por su contenedor a una altura fija
+             (para poder hacer scroll) deja de medir sus filas por contenido
+             y las encoge al mínimo — de ahí el envoltorio. -->
+        <div class="board__grid">
+
+        <article class="card" data-panel="prioridad" aria-labelledby="panel-prioridad-heading">
+          <header class="card__header">
+            <h2 id="panel-prioridad-heading" class="card__title">PRIORIDAD INMEDIATA</h2>
+          </header>
+          <p class="card__meta">3 mensajes cifrados pendientes</p>
+          <ul class="card__list">
+            <li>Operaciones solicita autorización para iniciar la fase de extracción.</li>
+            <li>El equipo jurídico recomienda eliminar toda referencia a «materiales de origen no humano».</li>
+            <li>Seguridad informa de actividad no autorizada en la red de la instalación.</li>
+          </ul>
+        </article>
+
+        <article class="card" data-panel="agenda" aria-labelledby="panel-agenda-heading">
+          <header class="card__header">
+            <h2 id="panel-agenda-heading" class="card__title">AGENDA</h2>
+          </header>
+          <ul class="card__list card__list--agenda">
+            <li><time datetime="07:00">07:00</time> — Informe privado con Dirección de Recursos</li>
+            <li><time datetime="08:30">08:30</time> — Revisión de pérdidas operativas</li>
+            <li><time datetime="10:00">10:00</time> — Videollamada con el equipo de contención</li>
+            <li><time datetime="12:15">12:15</time> — Evaluación del contrato de unidades de seguridad</li>
+            <li><time datetime="14:00">14:00</time> — Reunión confidencial: Proyecto Palisade</li>
+            <li><time datetime="16:30">16:30</time> — Eliminación programada de archivos temporales</li>
+          </ul>
+        </article>
+
+        <article class="card" data-panel="indicadores" aria-labelledby="panel-indicadores-heading">
+          <header class="card__header">
+            <h2 id="panel-indicadores-heading" class="card__title">INDICADORES CORPORATIVOS</h2>
+          </header>
+          <ul class="card__list card__list--metrics">
+            <li><span class="metric__label">Beneficio trimestral</span><span class="metric__value">+18,7 %</span></li>
+            <li><span class="metric__label">Incidentes declarados</span><span class="metric__value">0</span></li>
+            <li><span class="metric__label">Incidentes internos</span><span class="metric__value">12</span></li>
+            <li><span class="metric__label">Reclamaciones legales activas</span><span class="metric__value">7</span></li>
+            <li><span class="metric__label">Probabilidad de intervención externa</span><span class="metric__value">ELEVADA</span></li>
+          </ul>
+        </article>
+
+        <article class="card" data-panel="alerta" aria-labelledby="panel-alerta-heading">
+          <header class="card__header">
+            <h2 id="panel-alerta-heading" class="card__title">ALERTA DE SEGURIDAD</h2>
+          </header>
+          <p class="card__body">Se ha detectado una unidad de seguridad operando fuera de los parámetros contractuales.</p>
+          <ul class="card__list card__list--metrics">
+            <li><span class="metric__label">Designación</span><span class="metric__value">SecUnit — identidad desconocida</span></li>
+            <li><span class="metric__label">Estado del módulo gobernador</span><span class="metric__value">No verificable</span></li>
+            <li><span class="metric__label">Nivel de amenaza</span><span class="metric__value">Crítico</span></li>
+            <li><span class="metric__label">Orden recomendada</span><span class="metric__value">Localizar, aislar y borrar</span></li>
+          </ul>
+        </article>
+
+        <article class="card" data-panel="nota" aria-labelledby="panel-nota-heading">
+          <header class="card__header">
+            <h2 id="panel-nota-heading" class="card__title">NOTA PERSONAL</h2>
+          </header>
+          <ul class="card__list">
+            <li>No enviar instrucciones sensibles por los canales corporativos.</li>
+            <li>No confiar en el equipo de campo.</li>
+            <li>No mencionar los restos alienígenas durante la reunión con los inversores.</li>
+            <li>Confirmar que los registros de la expedición anterior hayan sido destruidos.</li>
+          </ul>
+          <blockquote class="card__quote">
+            <p>«En GrayCris, un problema solo existe mientras quede alguien capaz de informar sobre él.»</p>
+            <footer class="card__quote-source">Recordatorio</footer>
+          </blockquote>
+        </article>
+
+        <article class="card card--terminal" data-panel="terminal" aria-labelledby="panel-terminal-heading">
+          <header class="card__header">
+            <h2 id="panel-terminal-heading" class="card__title">Terminal de acceso</h2>
+          </header>
+          <div class="terminal">
+            <!-- Contenido generado por script.js al escribir (teclado de abajo o físico) -->
+            <div class="terminal__output" id="terminal-output" aria-live="polite"></div>
+          </div>
+        </article>
+
+        </div>
+
+      </main>
+
+    </div>
+
+    <!-- ==========================================================
+         TECLADO — zona completa inferior, dividido en dos manos.
+         Alimenta la terminal de arriba (data-panel="terminal").
+         ========================================================== -->
+    <section class="keyboard-zone" aria-label="Teclado de acceso">
+      <div class="keyboard" id="keyboard" role="group" aria-label="Teclado virtual">
+        <div class="keyboard__hand keyboard__hand--left" data-hand="left">
+          <!-- Teclas generadas dinámicamente por script.js -->
+        </div>
+        <div class="keyboard__center" aria-hidden="true"></div>
+        <div class="keyboard__hand keyboard__hand--right" data-hand="right">
+          <!-- Teclas generadas dinámicamente por script.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================
+         FOOTER — barra de acciones tipo consola
+         ========================================================== -->
+    <footer class="desktop__footer">
+      <div class="taskbar">
+        <button class="taskbar__button" type="button" data-action="abrir-informe">Abrir informe confidencial</button>
+        <button class="taskbar__button" type="button" data-action="autorizar-operacion">Autorizar operación</button>
+        <button class="taskbar__button" type="button" data-action="borrar-historial">Borrar historial</button>
+        <button class="taskbar__button" type="button" data-action="bloquear-terminal">Bloquear terminal</button>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
