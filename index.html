@@ -138,7 +138,9 @@
 
         <article class="card" data-panel="alerta" aria-labelledby="panel-alerta-heading">
           <header class="card__header">
-            <h2 id="panel-alerta-heading" class="card__title">ALERTA DE SEGURIDAD</h2>
+            <!-- data-glitch duplica el texto para las capas de aberración
+                 cromática del efecto glitch (::before/::after en CSS) -->
+            <h2 id="panel-alerta-heading" class="card__title" data-glitch="ALERTA DE SEGURIDAD">ALERTA DE SEGURIDAD</h2>
           </header>
           <p class="card__body">Se ha detectado una unidad de seguridad operando fuera de los parámetros contractuales.</p>
           <ul class="card__list card__list--metrics">

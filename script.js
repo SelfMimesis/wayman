@@ -10,15 +10,31 @@
 (function () {
   'use strict';
 
+  function prefersReducedMotion() {
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
   const clockEl = document.getElementById('corporate-clock');
 
+  // Se comprueba cada segundo pero solo se toca el DOM (y se dispara el
+  // fade) cuando el minuto realmente cambia: evita escrituras redundantes
+  // y evita el drift que tendría un setInterval a 60000ms puro.
   function updateClock() {
     if (!clockEl) return;
     const now = new Date();
-    const hh = String(now.getHours()).padStart(2, '0');
-    const mm = String(now.getMinutes()).padStart(2, '0');
-    const ss = String(now.getSeconds()).padStart(2, '0');
-    clockEl.textContent = `${hh}:${mm}:${ss}`;
+    const next = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    if (clockEl.textContent === next) return;
+
+    if (prefersReducedMotion()) {
+      clockEl.textContent = next;
+      return;
+    }
+
+    clockEl.style.opacity = '0';
+    setTimeout(() => {
+      clockEl.textContent = next;
+      clockEl.style.opacity = '1';
+    }, 300);
   }
 
   updateClock();
@@ -46,6 +62,57 @@
 
   document.addEventListener('click', enterFullscreen);
   document.addEventListener('touchstart', enterFullscreen, { passive: true });
+
+  // --------------------------------------------------------------------
+  // Animaciones ambientales controladas por JS (máquina de escribir +
+  // glitch aleatorio). El pulso de los títulos, la respiración del dock y
+  // el fade del reloj son puro CSS (@keyframes/transition en styles.css);
+  // esto es lo único que necesita temporizadores de JS, para controlar la
+  // velocidad por carácter y el intervalo aleatorio del glitch.
+  // --------------------------------------------------------------------
+
+  // Máquina de escribir, solo en la carga inicial. El delay por carácter
+  // lleva algo de aleatoriedad (y una pausa extra en puntuación) para que
+  // no se sienta perfectamente mecánico.
+  function typewriter(el) {
+    if (!el) return;
+    if (prefersReducedMotion()) return; // se deja el texto completo tal cual
+
+    const fullText = el.textContent;
+    el.textContent = '';
+    let i = 0;
+
+    function step() {
+      if (i >= fullText.length) return;
+      const char = fullText[i];
+      el.textContent += char;
+      i++;
+      let delay = 28 + Math.random() * 35;
+      if (',;'.includes(char)) delay += 120;
+      if ('.!?'.includes(char)) delay += 220;
+      setTimeout(step, delay);
+    }
+
+    step();
+  }
+
+  typewriter(document.querySelector('.brand__greeting'));
+  typewriter(document.querySelector('[data-panel="alerta"] .card__body'));
+
+  // Glitch aleatorio (cada 8-15s) solo en el panel de ALERTA DE SEGURIDAD.
+  // .is-glitching dispara las capas de aberración cromática ya definidas en
+  // styles.css (::before/::after con content: attr(data-glitch)).
+  function scheduleGlitch(card) {
+    if (!card || prefersReducedMotion()) return;
+    const delay = 8000 + Math.random() * 7000;
+    setTimeout(() => {
+      card.classList.add('is-glitching');
+      setTimeout(() => card.classList.remove('is-glitching'), 450);
+      scheduleGlitch(card);
+    }, delay);
+  }
+
+  scheduleGlitch(document.querySelector('[data-panel="alerta"]'));
 
   // --------------------------------------------------------------------
   // Terminal de acceso + teclado virtual dividido (mano izquierda / derecha)

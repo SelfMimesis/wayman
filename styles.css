@@ -41,6 +41,12 @@
   --accent-red-dim: #c46666;
   --line: rgba(168, 74, 74, 0.4);
   --glow: rgba(255, 43, 43, 0.55);
+
+  /* Curvas de easing para las animaciones ambientales: una orgánica/lenta
+     para pulsos y respiración, otra más rápida para transiciones puntuales
+     (el fade del reloj). */
+  --ease-organic: cubic-bezier(0.45, 0, 0.55, 1);
+  --ease-snap: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* --------------------------------------------------------------------------
@@ -116,6 +122,36 @@ body::before {
   opacity: 0.45;
   pointer-events: none;
   z-index: 5;
+}
+
+/* --------------------------------------------------------------------------
+   Animaciones ambientales — definiciones de @keyframes. Solo animan
+   transform/opacity a propósito (nunca box-shadow/filter/color), para que
+   el navegador las resuelva en el compositor sin recalcular layout/paint en
+   cada frame. Se aplican junto a cada componente más abajo; todas se
+   desactivan con prefers-reduced-motion (al final del archivo) y las que
+   son JS (máquina de escribir, glitch) tienen su propio chequeo en script.js.
+   -------------------------------------------------------------------------- */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes glitch-shift-a {
+  0%, 100% { opacity: 0; transform: translateX(0); }
+  20% { opacity: 0.65; transform: translateX(-2px); }
+  40% { opacity: 0; transform: translateX(0); }
+}
+
+@keyframes glitch-shift-b {
+  0%, 100% { opacity: 0; transform: translateX(0); }
+  25% { opacity: 0.55; transform: translateX(2px); }
+  45% { opacity: 0; transform: translateX(0); }
 }
 
 /* --------------------------------------------------------------------------
@@ -216,6 +252,18 @@ body::before {
   color: var(--accent-red);
 }
 
+/* Fade puntual cuando cambia el minuto (ver script.js) */
+#corporate-clock {
+  transition: opacity 0.3s var(--ease-snap);
+}
+
+/* Pulso lento en el indicador de conexión segura, para reforzar que el
+   sistema está "vivo" y monitoreando activamente. */
+.status__item--secure .status__value {
+  animation: pulse-glow 4.6s var(--ease-organic) 0.3s infinite;
+  will-change: opacity;
+}
+
 /* --------------------------------------------------------------------------
    Body: dock lateral + board
    -------------------------------------------------------------------------- */
@@ -268,13 +316,17 @@ body::before {
   background: currentColor;
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
   filter: drop-shadow(0 0 3px var(--glow));
+  animation: breathe 3.2s var(--ease-organic) infinite;
+  will-change: transform;
 }
 
-.dock__item:nth-child(1) .dock__icon { opacity: 0.9; }
-.dock__item:nth-child(2) .dock__icon { opacity: 0.65; }
-.dock__item:nth-child(3) .dock__icon { opacity: 0.95; }
-.dock__item:nth-child(4) .dock__icon { opacity: 0.7; }
-.dock__item:nth-child(5) .dock__icon { opacity: 0.6; }
+/* Opacidad + duración/retardo de la "respiración" distintos por icono, para
+   que los 5 no suban y bajen exactamente a la vez. */
+.dock__item:nth-child(1) .dock__icon { opacity: 0.9; animation-duration: 2.8s; animation-delay: 0s; }
+.dock__item:nth-child(2) .dock__icon { opacity: 0.65; animation-duration: 3.4s; animation-delay: 0.5s; }
+.dock__item:nth-child(3) .dock__icon { opacity: 0.95; animation-duration: 3s; animation-delay: 0.9s; }
+.dock__item:nth-child(4) .dock__icon { opacity: 0.7; animation-duration: 3.6s; animation-delay: 0.3s; }
+.dock__item:nth-child(5) .dock__icon { opacity: 0.6; animation-duration: 3.1s; animation-delay: 0.7s; }
 
 .dock__label {
   font-size: 0.7rem;
@@ -338,7 +390,19 @@ body::before {
   letter-spacing: 0.18em;
   color: var(--accent-red);
   text-shadow: 0 0 8px var(--glow);
+  animation: pulse-glow 4s var(--ease-organic) infinite;
+  will-change: opacity;
 }
+
+/* Duración/retardo distintos por tarjeta para que los 6 títulos no
+   parpadeen en fase (si coincidieran se leería como un único parpadeo en
+   vez de un ambiente "vivo"). */
+.board__grid .card:nth-child(1) .card__title { animation-duration: 3.6s; animation-delay: 0s; }
+.board__grid .card:nth-child(2) .card__title { animation-duration: 4.2s; animation-delay: 0.4s; }
+.board__grid .card:nth-child(3) .card__title { animation-duration: 3.9s; animation-delay: 0.9s; }
+.board__grid .card:nth-child(4) .card__title { animation-duration: 4.4s; animation-delay: 0.2s; }
+.board__grid .card:nth-child(5) .card__title { animation-duration: 3.7s; animation-delay: 1.2s; }
+.board__grid .card:nth-child(6) .card__title { animation-duration: 4.1s; animation-delay: 0.6s; }
 
 .card__meta,
 .card__body {
@@ -404,6 +468,39 @@ body::before {
   font-size: 0.7rem;
   letter-spacing: 0.1em;
   opacity: 0.7;
+}
+
+/* Glitch (aberración cromática) solo en el título de ALERTA DE SEGURIDAD.
+   script.js añade/quita .is-glitching cada 8-15s (intervalo aleatorio). Las
+   capas de color se generan con content: attr(data-glitch), que duplica el
+   texto del título sin tocar el DOM real. */
+.card[data-panel="alerta"] .card__title {
+  position: relative;
+}
+
+.card[data-panel="alerta"] .card__title::before,
+.card[data-panel="alerta"] .card__title::after {
+  content: attr(data-glitch);
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.card[data-panel="alerta"] .card__title::before {
+  color: #4dd9ff;
+}
+
+.card[data-panel="alerta"] .card__title::after {
+  color: #ff4da6;
+}
+
+.card[data-panel="alerta"].is-glitching .card__title::before {
+  animation: glitch-shift-a 0.4s var(--ease-snap);
+}
+
+.card[data-panel="alerta"].is-glitching .card__title::after {
+  animation: glitch-shift-b 0.4s var(--ease-snap);
 }
 
 /* --- Tarjeta de terminal — agrandada: ocupa 2 columnas x 2 filas -------- */
@@ -672,6 +769,22 @@ body::before {
   .keyboard__center {
     width: 2.25rem;
     height: 2.25rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Accesibilidad: si el usuario prefiere menos movimiento, todas las
+   animaciones/transiciones CSS de arriba (pulso, respiración, glitch, fade
+   del reloj) se completan al instante en vez de reproducirse. Los efectos
+   que corren en JS (máquina de escribir, disparo del glitch) tienen su
+   propio chequeo de matchMedia en script.js, porque esta media query no
+   afecta a temporizadores de JavaScript.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }
 

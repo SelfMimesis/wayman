@@ -51,12 +51,53 @@ wayman/
       (sigue el `clip-path` recortado; un `border`/`outline` normal no lo
       haría). Escribe tanto por clic en las teclas como por teclado físico
       (ver nota de accesibilidad más abajo), alimentando la terminal de arriba.
+- [x] **Modo kiosco**: el primer toque/clic en cualquier parte de la página
+      entra en pantalla completa (Fullscreen API); si en algún momento se
+      sale, el siguiente toque vuelve a entrar. Importante: esto no bloquea
+      la tecla Escape ni los gestos del sistema — los navegadores reservan
+      esa salida siempre, como medida de seguridad que una página no puede
+      desactivar (para que ningún sitio pueda dejar a alguien atrapado en
+      pantalla completa). Lo que sí garantiza es que ningún toque sobre la
+      propia interfaz saca de pantalla completa.
 - [x] Responsive con **1340×800 como resolución de referencia** (estilos
       base) y breakpoints de 480px a 1600px+.
+- [x] **Animaciones ambientales**, todas solo con `transform`/`opacity`
+      (nunca `box-shadow`/`filter`/color en `@keyframes`, para que corran en
+      el compositor sin disparar layout/paint por frame):
+      - Pulso lento de opacidad (0.85–1) en los 6 títulos de tarjeta y en
+        "Conexión segura: ACTIVA", cada uno con su propia duración/retardo
+        (vía `nth-child`) para que no parpadeen en fase.
+      - Respiración (`translateY` de 1-2px) en los 5 iconos del dock, en
+        bucle, también con duración/retardo distintos por icono.
+      - Reloj corporativo: ahora se actualiza cada minuto (formato `HH:MM`,
+        ya sin segundos) en vez de cada segundo, comprobando el `Date` cada
+        segundo pero solo tocando el DOM cuando el minuto cambia de verdad
+        (evita el drift de un `setInterval` a 60000ms puro), con un fade
+        corto al cambiar.
+      - Máquina de escribir (JS, no CSS puro) en la carga inicial para
+        "Buen día, director." y el texto de ALERTA DE SEGURIDAD, con un
+        delay por carácter ligeramente aleatorio y pausas extra en
+        puntuación para que no se sienta mecánico.
+      - Glitch de aberración cromática (dos capas de color vía
+        `content: attr(data-glitch)` en `::before`/`::after`) que se
+        dispara solo, cada 8-15s (intervalo aleatorio real, no un
+        `@keyframes` en bucle fijo), únicamente en el título de ALERTA DE
+        SEGURIDAD.
+      - Todo se desactiva con `prefers-reduced-motion`: lo CSS vía un
+        `@media` global al final de `styles.css`; lo que corre en JS
+        (máquina de escribir, disparo del glitch) tiene su propio chequeo
+        de `matchMedia`, porque esa media query no afecta a temporizadores
+        de JavaScript.
 - [x] Verificado en un navegador real (Edge headless vía Playwright, no solo
       mirado en el editor): capturas de pantalla, bounding boxes de cada
-      tarjeta para confirmar que no se solapan, y clics simulados en ambas
-      manos del teclado para confirmar que el texto llega a la terminal.
+      tarjeta para confirmar que no se solapan, clics simulados en ambas
+      manos del teclado para confirmar que el texto llega a la terminal, y
+      para las animaciones — progreso de la máquina de escribir muestreado
+      en el tiempo, opacidad/transform de los pulsos muestreados en dos
+      instantes para confirmar que sí progresan, un disparo real del glitch
+      aleatorio capturado dentro de la ventana de 8-15s, y los tres (pulso,
+      respiración, máquina de escribir) verificados también con
+      `prefers-reduced-motion` emulado para confirmar que se desactivan.
 
 ## Dos bugs reales que aparecieron al verificar (y su arreglo)
 
@@ -87,8 +128,6 @@ wayman/
       tarjetas y `data-action` de los botones para cablear selección de
       módulo activo, focus/expansión de tarjeta y acciones reales de consola
       (los puntos de extensión ya están comentados en `script.js`).
-- [ ] Animaciones/efectos (glitch, glow pulsante, etc.) — de momento todo el
-      diseño visual es estático, tal como se pidió.
 
 ## Notas técnicas
 
