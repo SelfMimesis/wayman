@@ -97,22 +97,6 @@
   }
 
   typewriter(document.querySelector('.brand__greeting'));
-  typewriter(document.querySelector('[data-panel="alerta"] .card__body'));
-
-  // Glitch aleatorio (cada 8-15s) solo en el panel de ALERTA DE SEGURIDAD.
-  // .is-glitching dispara las capas de aberración cromática ya definidas en
-  // styles.css (::before/::after con content: attr(data-glitch)).
-  function scheduleGlitch(card) {
-    if (!card || prefersReducedMotion()) return;
-    const delay = 8000 + Math.random() * 7000;
-    setTimeout(() => {
-      card.classList.add('is-glitching');
-      setTimeout(() => card.classList.remove('is-glitching'), 450);
-      scheduleGlitch(card);
-    }, delay);
-  }
-
-  scheduleGlitch(document.querySelector('[data-panel="alerta"]'));
 
   // --------------------------------------------------------------------
   // Telemetría ASCII procedural. Como en el shader de referencia, cada

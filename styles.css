@@ -171,18 +171,6 @@ body::before {
   50% { transform: scaleY(1); opacity: 0.9; }
 }
 
-@keyframes glitch-shift-a {
-  0%, 100% { opacity: 0; transform: translateX(0); }
-  20% { opacity: 0.65; transform: translateX(-2px); }
-  40% { opacity: 0; transform: translateX(0); }
-}
-
-@keyframes glitch-shift-b {
-  0%, 100% { opacity: 0; transform: translateX(0); }
-  25% { opacity: 0.55; transform: translateX(2px); }
-  45% { opacity: 0; transform: translateX(0); }
-}
-
 /* "Circuito": una chispa de luz recorre una línea divisoria de punta a
    punta. El elemento mide 20% del contenedor y se traslada de -100% a
    500% de SU PROPIO ancho — eso equivale a recorrer de -20% a 120% del
@@ -775,35 +763,6 @@ body::before {
    script.js añade/quita .is-glitching cada 8-15s (intervalo aleatorio). Las
    capas de color se generan con content: attr(data-glitch), que duplica el
    texto del título sin tocar el DOM real. */
-.card[data-panel="alerta"] .card__title {
-  position: relative;
-}
-
-.card[data-panel="alerta"] .card__title::before,
-.card[data-panel="alerta"] .card__title::after {
-  content: attr(data-glitch);
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.card[data-panel="alerta"] .card__title::before {
-  color: #4dd9ff;
-}
-
-.card[data-panel="alerta"] .card__title::after {
-  color: #ff4da6;
-}
-
-.card[data-panel="alerta"].is-glitching .card__title::before {
-  animation: glitch-shift-a 0.4s var(--ease-snap);
-}
-
-.card[data-panel="alerta"].is-glitching .card__title::after {
-  animation: glitch-shift-b 0.4s var(--ease-snap);
-}
-
 /* --- Tarjeta de terminal — agrandada: ocupa 2 columnas x 2 filas -------- */
 .card--terminal {
   grid-column: span 2;
@@ -1353,15 +1312,6 @@ body::before {
     grid-row: 2;
   }
 
-  .card[data-panel="alerta"] {
-    grid-column: 1;
-    grid-row: 3;
-  }
-
-  .card[data-panel="nota"] {
-    grid-column: 2 / span 2;
-    grid-row: 3;
-  }
 }
 
 /* Por debajo de la resolución de referencia (portátil / tablet más pequeña) */
