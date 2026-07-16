@@ -225,7 +225,9 @@
            Alimenta la terminal de arriba (data-panel="terminal").
            ========================================================== -->
       <section class="keyboard-zone" aria-label="Teclado de acceso">
-        <canvas class="keyboard-packing" id="keyboard-packing" aria-hidden="true"></canvas>
+        <div class="keyboard-hole" aria-hidden="true">
+          <img src="img/logo-graycris-s2.svg" alt="">
+        </div>
         <div class="keyboard" id="keyboard" role="group" aria-label="Teclado virtual">
           <div class="keyboard__hand keyboard__hand--left" data-hand="left">
             <!-- Teclas generadas dinámicamente por script.js -->
@@ -243,6 +245,11 @@
          FOOTER — barra de acciones tipo consola
          ========================================================== -->
     <footer class="desktop__footer">
+      <div class="footer-geometry" aria-hidden="true">
+        <img src="img/logo-graycris-s2.svg" alt="">
+        <img src="img/logo-graycris-s2.svg" alt="">
+        <img src="img/logo-graycris-s2.svg" alt="">
+      </div>
       <!-- Mensaje transitorio tras un clic en la taskbar; script.js le pone
            el texto y la clase is-visible, y la quita sola a los 4-5s. -->
       <div class="system-log" id="system-log" role="status" aria-live="polite"></div>
