@@ -203,6 +203,17 @@
           </div>
         </article>
 
+        <aside class="ascii-telemetry" aria-label="Telemetría de prospección en formato ASCII">
+          <div class="ascii-telemetry__header">
+            <span>SONDA // GC-7</span>
+            <span class="ascii-telemetry__status">RASTREO ACTIVO</span>
+          </div>
+          <canvas id="ascii-telemetry-canvas" aria-hidden="true"></canvas>
+          <div class="ascii-telemetry__readout" aria-hidden="true">
+            <span id="ascii-azimuth">AZ 034.8</span><span id="ascii-elevation">EL 17.2</span><span id="ascii-delta">Δ 0.004</span>
+          </div>
+        </aside>
+
         </div>
 
       </main>
@@ -214,6 +225,7 @@
            Alimenta la terminal de arriba (data-panel="terminal").
            ========================================================== -->
       <section class="keyboard-zone" aria-label="Teclado de acceso">
+        <canvas class="keyboard-packing" id="keyboard-packing" aria-hidden="true"></canvas>
         <div class="keyboard" id="keyboard" role="group" aria-label="Teclado virtual">
           <div class="keyboard__hand keyboard__hand--left" data-hand="left">
             <!-- Teclas generadas dinámicamente por script.js -->

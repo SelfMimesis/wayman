@@ -125,6 +125,19 @@ wayman/
       usan una respiración lenta de escala, intensidad y halo inspirada en
       `E22_S85_ConRoom_ScreenSavers_C_v01.mp4`, con alternativa estática para
       `prefers-reduced-motion`.
+- [x] Celda libre junto a la terminal: módulo de telemetría procedural con
+      radar, onda, barras y ruido convertidos a caracteres ASCII según su
+      luminosidad. Está inspirado en el enfoque del shader ASCII de Codrops,
+      implementado con Canvas 2D para conservar la ejecución directa del
+      proyecto sin dependencias ni proceso de build.
+- [x] Telemetría enlazada al teclado físico y virtual: cada pulsación cambia
+      frecuencia, velocidad, amplitud, barrido y lecturas numéricas. El mismo
+      evento lanza una onda Matrix breve sobre una muestra del texto visible,
+      restaurando después cada nodo sin destruir su marcado.
+- [x] Canal central del teclado: empaquetado controlado de círculos inspirado
+      en el algoritmo de CodePlastic. Los elementos se separan hasta no
+      solaparse; dos tercios perforan una veladura para revelar el cristal del
+      panel y el resto son anillos huecos con doble trazo y halo de neón.
 - [ ] Interactividad del **dock** y las **tarjetas** (selección de módulo
       activo, focus/expansión) — sigue pendiente, punto de extensión
       comentado en `script.js`. La de la **taskbar** ya está resuelta (ver

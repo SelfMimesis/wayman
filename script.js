@@ -115,6 +115,330 @@
   scheduleGlitch(document.querySelector('[data-panel="alerta"]'));
 
   // --------------------------------------------------------------------
+  // Controlled circle packing del canal central del teclado. Los círculos
+  // parten cerca del centro y una relajación iterativa aplica fuerzas de
+  // separación hasta que dejan de solaparse, siguiendo el planteamiento
+  // del tutorial de CodePlastic adaptado de Processing a Canvas 2D.
+  // --------------------------------------------------------------------
+  const packingCanvas = document.getElementById('keyboard-packing');
+
+  if (packingCanvas) {
+    const packingCtx = packingCanvas.getContext('2d', { alpha: true });
+    let packingWidth = 0;
+    let packingHeight = 0;
+    let packedCircles = [];
+    let packingFrame = 0;
+    let packingLastFrame = 0;
+
+    function createPackedCircles() {
+      const area = packingWidth * packingHeight;
+      const count = Math.max(14, Math.min(34, Math.round(area / 2600)));
+      const minRadius = Math.max(4, Math.min(packingWidth, packingHeight) * 0.025);
+      const maxRadius = Math.max(11, Math.min(packingWidth, packingHeight) * 0.105);
+
+      packedCircles = Array.from({ length: count }, (_, index) => ({
+        x: packingWidth / 2 + (Math.random() - 0.5) * 12,
+        y: packingHeight / 2 + (Math.random() - 0.5) * 12,
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: (Math.random() - 0.5) * 0.6,
+        radius: minRadius + Math.random() * (maxRadius - minRadius),
+        phase: Math.random() * Math.PI * 2,
+        cutout: index % 3 !== 0,
+      }));
+
+      // Relajación rápida previa: evita mostrar el estado inicial apilado.
+      for (let iteration = 0; iteration < 180; iteration++) {
+        let overlaps = 0;
+        for (let i = 0; i < packedCircles.length; i++) {
+          const a = packedCircles[i];
+          let forceX = 0;
+          let forceY = 0;
+          for (let j = 0; j < packedCircles.length; j++) {
+            if (i === j) continue;
+            const b = packedCircles[j];
+            let dx = a.x - b.x;
+            let dy = a.y - b.y;
+            let distance = Math.hypot(dx, dy);
+            const minimum = a.radius + b.radius + 2;
+            if (distance < minimum) {
+              overlaps++;
+              if (distance < 0.01) {
+                dx = Math.random() - 0.5;
+                dy = Math.random() - 0.5;
+                distance = Math.hypot(dx, dy);
+              }
+              const push = (minimum - distance) * 0.055;
+              forceX += (dx / distance) * push;
+              forceY += (dy / distance) * push;
+            }
+          }
+          a.vx = (a.vx + forceX) * 0.82;
+          a.vy = (a.vy + forceY) * 0.82;
+          a.x += a.vx;
+          a.y += a.vy;
+          a.x = Math.max(a.radius + 3, Math.min(packingWidth - a.radius - 3, a.x));
+          a.y = Math.max(a.radius + 3, Math.min(packingHeight - a.radius - 3, a.y));
+        }
+        if (!overlaps) break;
+      }
+    }
+
+    function resizePacking() {
+      const rect = packingCanvas.getBoundingClientRect();
+      const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
+      packingWidth = Math.max(1, Math.round(rect.width));
+      packingHeight = Math.max(1, Math.round(rect.height));
+      packingCanvas.width = Math.round(packingWidth * ratio);
+      packingCanvas.height = Math.round(packingHeight * ratio);
+      packingCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      createPackedCircles();
+    }
+
+    function drawPacking(time) {
+      const reduced = prefersReducedMotion();
+      if (!reduced && time - packingLastFrame < 55) {
+        packingFrame = requestAnimationFrame(drawPacking);
+        return;
+      }
+      packingLastFrame = time;
+      const t = reduced ? 0 : time * 0.001;
+
+      packingCtx.clearRect(0, 0, packingWidth, packingHeight);
+      packingCtx.fillStyle = 'rgba(48, 12, 15, 0.42)';
+      packingCtx.fillRect(0, 0, packingWidth, packingHeight);
+
+      // Los cutouts borran la veladura del propio canvas: a través de ellos
+      // reaparece el fondo de cristal más transparente de keyboard-zone.
+      packingCtx.save();
+      packingCtx.globalCompositeOperation = 'destination-out';
+      packedCircles.filter((circle) => circle.cutout).forEach((circle) => {
+        const radius = circle.radius * (1 + Math.sin(t * 0.65 + circle.phase) * 0.035);
+        packingCtx.beginPath();
+        packingCtx.arc(circle.x, circle.y, radius, 0, Math.PI * 2);
+        packingCtx.fillStyle = 'rgba(0, 0, 0, 0.82)';
+        packingCtx.fill();
+      });
+      packingCtx.restore();
+
+      packedCircles.forEach((circle, index) => {
+        const pulse = 1 + Math.sin(t * 0.8 + circle.phase) * 0.04;
+        const radius = circle.radius * pulse;
+        packingCtx.beginPath();
+        packingCtx.arc(circle.x, circle.y, radius, 0, Math.PI * 2);
+        packingCtx.lineWidth = circle.cutout ? 0.8 : 1.4;
+        packingCtx.strokeStyle = circle.cutout
+          ? 'rgba(255, 90, 90, 0.38)'
+          : `rgba(255, 43, 43, ${0.68 + Math.sin(t + index) * 0.16})`;
+        packingCtx.shadowColor = circle.cutout ? 'transparent' : 'rgba(255, 43, 43, 0.9)';
+        packingCtx.shadowBlur = circle.cutout ? 0 : 7;
+        packingCtx.stroke();
+
+        if (!circle.cutout && radius > 10) {
+          packingCtx.beginPath();
+          packingCtx.arc(circle.x, circle.y, radius * 0.72, 0, Math.PI * 2);
+          packingCtx.lineWidth = 0.55;
+          packingCtx.strokeStyle = 'rgba(255, 100, 100, 0.22)';
+          packingCtx.shadowBlur = 2;
+          packingCtx.stroke();
+        }
+      });
+      packingCtx.shadowBlur = 0;
+
+      if (!reduced) packingFrame = requestAnimationFrame(drawPacking);
+    }
+
+    const packingResizeObserver = new ResizeObserver(() => {
+      cancelAnimationFrame(packingFrame);
+      resizePacking();
+      drawPacking(performance.now() + 100);
+    });
+    packingResizeObserver.observe(packingCanvas);
+    resizePacking();
+    drawPacking(100);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) cancelAnimationFrame(packingFrame);
+      else if (!prefersReducedMotion()) packingFrame = requestAnimationFrame(drawPacking);
+    });
+  }
+
+  // --------------------------------------------------------------------
+  // Telemetría ASCII procedural. Como en el shader de referencia, cada
+  // celda muestrea un valor de luminosidad y lo convierte a un carácter.
+  // Aquí Canvas 2D mantiene el proyecto autocontenido y permite combinar
+  // radar, onda, histograma y ruido sin cargar OGL ni exigir Vite.
+  // --------------------------------------------------------------------
+  const asciiCanvas = document.getElementById('ascii-telemetry-canvas');
+  const MATRIX_GLYPHS = '01アイウエオカキクケコサシスセソABCDEFGHIJKLMNOPQRSTUVWXYZ$#@%&*+-<>/\\|';
+  let asciiInputImpulse = 0;
+  let asciiInputSeed = 0;
+  let asciiInputCount = 0;
+  let matrixRunToken = 0;
+  const matrixOriginals = new Map();
+
+  function restoreMatrixText() {
+    matrixOriginals.forEach((original, node) => {
+      if (node.isConnected) node.nodeValue = original;
+      node.parentElement?.classList.remove('is-matrix-decoding');
+    });
+    matrixOriginals.clear();
+  }
+
+  function triggerInterfaceMatrix() {
+    if (prefersReducedMotion()) return;
+    const token = ++matrixRunToken;
+    restoreMatrixText();
+
+    const roots = document.querySelectorAll([
+      '.brand__text', '.header__status', '.dock__label', '.card__title',
+      '.card__meta', '.card__body', '.card__list', '.card__quote',
+      '.taskbar__button', '.ascii-telemetry__header'
+    ].join(','));
+    const nodes = [];
+
+    roots.forEach((root) => {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      let node;
+      while ((node = walker.nextNode())) {
+        if (node.nodeValue.trim()) nodes.push(node);
+      }
+    });
+
+    // Se altera una muestra distinta en cada pulsación para crear una onda
+    // distribuida, legible y barata; nunca se destruye el marcado interno.
+    nodes.sort(() => Math.random() - 0.5).slice(0, Math.max(5, Math.ceil(nodes.length * 0.34))).forEach((node) => {
+      matrixOriginals.set(node, node.nodeValue);
+      node.parentElement?.classList.add('is-matrix-decoding');
+    });
+
+    let tick = 0;
+    function decodeTick() {
+      if (token !== matrixRunToken) return;
+      if (tick >= 3) {
+        restoreMatrixText();
+        return;
+      }
+      matrixOriginals.forEach((original, node) => {
+        node.nodeValue = [...original].map((char) => {
+          if (/\s/.test(char) || Math.random() > 0.28) return char;
+          return MATRIX_GLYPHS[Math.floor(Math.random() * MATRIX_GLYPHS.length)];
+        }).join('');
+      });
+      tick++;
+      setTimeout(decodeTick, 42);
+    }
+    decodeTick();
+  }
+
+  function reactToTerminalInput(char) {
+    asciiInputCount++;
+    asciiInputSeed = (asciiInputSeed * 33 + String(char).charCodeAt(0)) % 997;
+    asciiInputImpulse = Math.min(1, asciiInputImpulse + 0.3);
+    triggerInterfaceMatrix();
+  }
+
+  if (asciiCanvas) {
+    const ctx = asciiCanvas.getContext('2d', { alpha: true });
+    const chars = ' .·:+=*#%@';
+    let width = 0;
+    let height = 0;
+    let lastFrame = 0;
+    let animationFrame = 0;
+
+    function resizeAsciiTelemetry() {
+      const rect = asciiCanvas.getBoundingClientRect();
+      const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
+      width = Math.max(1, Math.round(rect.width));
+      height = Math.max(1, Math.round(rect.height));
+      asciiCanvas.width = Math.round(width * ratio);
+      asciiCanvas.height = Math.round(height * ratio);
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+
+    function hashNoise(x, y, phase) {
+      return (Math.sin(x * 12.9898 + y * 78.233 + phase * 0.37) * 43758.5453) % 1;
+    }
+
+    function drawAsciiTelemetry(time) {
+      const reduced = prefersReducedMotion();
+      if (!reduced && time - lastFrame < 90) {
+        animationFrame = requestAnimationFrame(drawAsciiTelemetry);
+        return;
+      }
+      lastFrame = time;
+
+      const t = reduced ? 2.4 + asciiInputSeed * 0.001 : time * (0.00032 + asciiInputImpulse * 0.0003);
+      const cellW = width < 250 ? 8 : 9;
+      const cellH = 10;
+      const cols = Math.ceil(width / cellW);
+      const rows = Math.ceil(height / cellH);
+      const radarX = 0.5;
+      const radarY = 0.42;
+      const sweep = t * 2.1;
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.font = `bold ${Math.max(7, cellW - 1)}px "Courier New", monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      for (let row = 3; row < rows - 3; row++) {
+        for (let col = 0; col < cols; col++) {
+          const u = (col + 0.5) / cols;
+          const v = (row + 0.5) / rows;
+          const dx = (u - radarX) * 1.65;
+          const dy = v - radarY;
+          const radius = Math.hypot(dx, dy);
+          const angle = Math.atan2(dy, dx);
+
+          const ringFrequency = 7.5 + asciiInputImpulse * 8 + (asciiInputSeed % 5) * 0.18;
+          const ring = Math.max(0, 1 - Math.abs(((radius * ringFrequency) % 1) - 0.5) * 15);
+          const crosshair = Math.max(0, 1 - Math.min(Math.abs(dx), Math.abs(dy)) * 90) * (radius < 0.38 ? 0.5 : 0);
+          const sweepDelta = Math.abs(Math.atan2(Math.sin(angle - sweep), Math.cos(angle - sweep)));
+          const radarBeam = Math.max(0, 1 - sweepDelta * 8) * Math.max(0, 1 - radius * 1.7);
+
+          const waveY = 0.70 + Math.sin(u * (18 + asciiInputImpulse * 16) + t * 4) * (0.045 + asciiInputImpulse * 0.035) + Math.sin(u * 43 - t + asciiInputSeed) * 0.018;
+          const waveform = Math.max(0, 1 - Math.abs(v - waveY) * 75);
+
+          const barZone = v > 0.79 && v < 0.91;
+          const barHeight = 0.02 + Math.abs(Math.sin(col * 1.71 + t * 3)) * 0.09;
+          const histogram = barZone && v > 0.91 - barHeight ? 0.78 : 0;
+
+          const noise = Math.abs(hashNoise(col, row, Math.floor(t * 5))) * 0.12;
+          const value = Math.min(1, ring * 0.32 + crosshair + radarBeam + waveform * 0.9 + histogram + noise);
+          if (value < 0.105) continue;
+
+          const char = chars[Math.min(chars.length - 1, Math.floor(value * chars.length))];
+          const alpha = 0.18 + value * 0.82;
+          ctx.fillStyle = `rgba(255, ${Math.round(38 + value * 40)}, ${Math.round(42 + value * 34)}, ${alpha})`;
+          ctx.fillText(char, (col + 0.5) * cellW, (row + 0.5) * cellH);
+        }
+      }
+
+      const azimuth = document.getElementById('ascii-azimuth');
+      const elevation = document.getElementById('ascii-elevation');
+      const delta = document.getElementById('ascii-delta');
+      if (azimuth) azimuth.textContent = `AZ ${((34.8 + asciiInputSeed * 0.31 + t * 4) % 360).toFixed(1).padStart(5, '0')}`;
+      if (elevation) elevation.textContent = `EL ${(17.2 + Math.sin(t + asciiInputSeed) * (4 + asciiInputImpulse * 19)).toFixed(1)}`;
+      if (delta) delta.textContent = `Δ ${(0.004 + asciiInputImpulse * 0.086 + (asciiInputCount % 7) * 0.001).toFixed(3)}`;
+      asciiInputImpulse = Math.max(0, asciiInputImpulse - (reduced ? 0 : 0.035));
+
+      if (!reduced) animationFrame = requestAnimationFrame(drawAsciiTelemetry);
+    }
+
+    const asciiResizeObserver = new ResizeObserver(resizeAsciiTelemetry);
+    asciiResizeObserver.observe(asciiCanvas);
+    resizeAsciiTelemetry();
+    animationFrame = requestAnimationFrame(drawAsciiTelemetry);
+
+    document.addEventListener('visibilitychange', () => {
+      cancelAnimationFrame(animationFrame);
+      if (!document.hidden && !prefersReducedMotion()) {
+        animationFrame = requestAnimationFrame(drawAsciiTelemetry);
+      }
+    });
+  }
+
+  // --------------------------------------------------------------------
   // Terminal de acceso + teclado virtual dividido (mano izquierda / derecha)
   //
   // Cada mano se arma por COLUMNAS (una por dedo: 1/Q/A/Z, 2/W/S/X, ...) en
@@ -142,11 +466,6 @@
   const terminalOutput = document.getElementById('terminal-output');
   const leftHand = document.querySelector('[data-hand="left"]');
   const rightHand = document.querySelector('[data-hand="right"]');
-
-  // Glifos para el efecto "matrix" de descifrado (letras, números, símbolos
-  // y algo de katakana, en el espíritu del original — el color se queda en
-  // el rojo de la app en vez de saltar a verde, para no romper la paleta).
-  const MATRIX_GLYPHS = '01アイウエオカキクケコサシスセソABCDEFGHIJKLMNOPQRSTUVWXYZ$#@%&*+-<>/\\|';
 
   if (terminalOutput && leftHand && rightHand) {
     const lines = [''];
@@ -188,6 +507,7 @@
     }
 
     function typeChar(char) {
+      reactToTerminalInput(char);
       lines[lines.length - 1] += char;
       if (char === ' ' || prefersReducedMotion()) {
         render();
@@ -197,11 +517,13 @@
     }
 
     function backspace() {
+      reactToTerminalInput('⌫');
       lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
       render();
     }
 
     function commitLine() {
+      reactToTerminalInput('↵');
       lines.push('');
       render();
     }
