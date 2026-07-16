@@ -122,80 +122,14 @@
   // --------------------------------------------------------------------
   const asciiCanvas = document.getElementById('ascii-telemetry-canvas');
   const MATRIX_GLYPHS = '01アイウエオカキクケコサシスセソABCDEFGHIJKLMNOPQRSTUVWXYZ$#@%&*+-<>/\\|';
-  let asciiInputImpulse = 0;
-  let asciiInputSeed = 0;
-  let asciiInputCount = 0;
-  let matrixRunToken = 0;
-  const matrixOriginals = new Map();
-
-  function restoreMatrixText() {
-    matrixOriginals.forEach((original, node) => {
-      if (node.isConnected) node.nodeValue = original;
-      node.parentElement?.classList.remove('is-matrix-decoding');
-    });
-    matrixOriginals.clear();
-  }
-
-  function triggerInterfaceMatrix() {
-    if (prefersReducedMotion()) return;
-    const token = ++matrixRunToken;
-    restoreMatrixText();
-
-    const roots = document.querySelectorAll([
-      '.brand__text', '.header__status', '.dock__label', '.card__title',
-      '.card__meta', '.card__body', '.card__list', '.card__quote',
-      '.taskbar__button', '.ascii-telemetry__header'
-    ].join(','));
-    const nodes = [];
-
-    roots.forEach((root) => {
-      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-      let node;
-      while ((node = walker.nextNode())) {
-        if (node.nodeValue.trim()) nodes.push(node);
-      }
-    });
-
-    // Se altera una muestra distinta en cada pulsación para crear una onda
-    // distribuida, legible y barata; nunca se destruye el marcado interno.
-    nodes.sort(() => Math.random() - 0.5).slice(0, Math.max(5, Math.ceil(nodes.length * 0.34))).forEach((node) => {
-      matrixOriginals.set(node, node.nodeValue);
-      node.parentElement?.classList.add('is-matrix-decoding');
-    });
-
-    let tick = 0;
-    function decodeTick() {
-      if (token !== matrixRunToken) return;
-      if (tick >= 3) {
-        restoreMatrixText();
-        return;
-      }
-      matrixOriginals.forEach((original, node) => {
-        node.nodeValue = [...original].map((char) => {
-          if (/\s/.test(char) || Math.random() > 0.28) return char;
-          return MATRIX_GLYPHS[Math.floor(Math.random() * MATRIX_GLYPHS.length)];
-        }).join('');
-      });
-      tick++;
-      setTimeout(decodeTick, 42);
-    }
-    decodeTick();
-  }
-
-  function reactToTerminalInput(char) {
-    asciiInputCount++;
-    asciiInputSeed = (asciiInputSeed * 33 + String(char).charCodeAt(0)) % 997;
-    asciiInputImpulse = Math.min(1, asciiInputImpulse + 0.3);
-    triggerInterfaceMatrix();
-  }
 
   if (asciiCanvas) {
     const ctx = asciiCanvas.getContext('2d', { alpha: true });
     const chars = ' .·:+=*#%@';
     let width = 0;
     let height = 0;
-    let lastFrame = 0;
     let animationFrame = 0;
+    let animationTimer = 0;
 
     function resizeAsciiTelemetry() {
       const rect = asciiCanvas.getBoundingClientRect();
@@ -213,13 +147,7 @@
 
     function drawAsciiTelemetry(time) {
       const reduced = prefersReducedMotion();
-      if (!reduced && time - lastFrame < 90) {
-        animationFrame = requestAnimationFrame(drawAsciiTelemetry);
-        return;
-      }
-      lastFrame = time;
-
-      const t = reduced ? 2.4 + asciiInputSeed * 0.001 : time * (0.00032 + asciiInputImpulse * 0.0003);
+      const t = reduced ? 2.4 : time * 0.00032;
       const cellW = width < 250 ? 8 : 9;
       const cellH = 10;
       const cols = Math.ceil(width / cellW);
@@ -242,13 +170,13 @@
           const radius = Math.hypot(dx, dy);
           const angle = Math.atan2(dy, dx);
 
-          const ringFrequency = 7.5 + asciiInputImpulse * 8 + (asciiInputSeed % 5) * 0.18;
+          const ringFrequency = 7.5;
           const ring = Math.max(0, 1 - Math.abs(((radius * ringFrequency) % 1) - 0.5) * 15);
           const crosshair = Math.max(0, 1 - Math.min(Math.abs(dx), Math.abs(dy)) * 90) * (radius < 0.38 ? 0.5 : 0);
           const sweepDelta = Math.abs(Math.atan2(Math.sin(angle - sweep), Math.cos(angle - sweep)));
           const radarBeam = Math.max(0, 1 - sweepDelta * 8) * Math.max(0, 1 - radius * 1.7);
 
-          const waveY = 0.70 + Math.sin(u * (18 + asciiInputImpulse * 16) + t * 4) * (0.045 + asciiInputImpulse * 0.035) + Math.sin(u * 43 - t + asciiInputSeed) * 0.018;
+          const waveY = 0.70 + Math.sin(u * 18 + t * 4) * 0.045 + Math.sin(u * 43 - t) * 0.018;
           const waveform = Math.max(0, 1 - Math.abs(v - waveY) * 75);
 
           const barZone = v > 0.79 && v < 0.91;
@@ -269,12 +197,15 @@
       const azimuth = document.getElementById('ascii-azimuth');
       const elevation = document.getElementById('ascii-elevation');
       const delta = document.getElementById('ascii-delta');
-      if (azimuth) azimuth.textContent = `AZ ${((34.8 + asciiInputSeed * 0.31 + t * 4) % 360).toFixed(1).padStart(5, '0')}`;
-      if (elevation) elevation.textContent = `EL ${(17.2 + Math.sin(t + asciiInputSeed) * (4 + asciiInputImpulse * 19)).toFixed(1)}`;
-      if (delta) delta.textContent = `Δ ${(0.004 + asciiInputImpulse * 0.086 + (asciiInputCount % 7) * 0.001).toFixed(3)}`;
-      asciiInputImpulse = Math.max(0, asciiInputImpulse - (reduced ? 0 : 0.035));
+      if (azimuth) azimuth.textContent = `AZ ${((34.8 + t * 4) % 360).toFixed(1).padStart(5, '0')}`;
+      if (elevation) elevation.textContent = `EL ${(17.2 + Math.sin(t) * 4).toFixed(1)}`;
+      if (delta) delta.textContent = 'Δ 0.004';
 
-      if (!reduced) animationFrame = requestAnimationFrame(drawAsciiTelemetry);
+      if (!reduced) {
+        animationTimer = setTimeout(() => {
+          animationFrame = requestAnimationFrame(drawAsciiTelemetry);
+        }, 140);
+      }
     }
 
     const asciiResizeObserver = new ResizeObserver(resizeAsciiTelemetry);
@@ -284,6 +215,7 @@
 
     document.addEventListener('visibilitychange', () => {
       cancelAnimationFrame(animationFrame);
+      clearTimeout(animationTimer);
       if (!document.hidden && !prefersReducedMotion()) {
         animationFrame = requestAnimationFrame(drawAsciiTelemetry);
       }
@@ -321,7 +253,6 @@
 
   if (terminalOutput && leftHand && rightHand) {
     const lines = [''];
-    const keyElementsByChar = new Map();
     let decodeToken = 0;
 
     function render() {
@@ -359,7 +290,6 @@
     }
 
     function typeChar(char) {
-      reactToTerminalInput(char);
       lines[lines.length - 1] += char;
       if (char === ' ' || prefersReducedMotion()) {
         render();
@@ -369,32 +299,13 @@
     }
 
     function backspace() {
-      reactToTerminalInput('⌫');
       lines[lines.length - 1] = lines[lines.length - 1].slice(0, -1);
       render();
     }
 
     function commitLine() {
-      reactToTerminalInput('↵');
       lines.push('');
       render();
-    }
-
-    function spawnKeyPopup(keyEl, label) {
-      if (prefersReducedMotion()) return;
-      const popup = document.createElement('span');
-      popup.className = 'key-popup';
-      popup.textContent = label;
-      keyEl.appendChild(popup);
-
-      let removed = false;
-      function cleanup() {
-        if (removed) return;
-        removed = true;
-        popup.remove();
-      }
-      popup.addEventListener('animationend', cleanup);
-      setTimeout(cleanup, 600); // red de seguridad si animationend no llega a disparar
     }
 
     function makeKey(label, className, onPress) {
@@ -408,10 +319,8 @@
       labelEl.textContent = label;
       key.appendChild(labelEl);
       key.addEventListener('click', () => {
-        spawnKeyPopup(key, label);
         onPress();
       });
-      if (label.length === 1) keyElementsByChar.set(label.toLowerCase(), key);
       return key;
     }
 
@@ -473,11 +382,6 @@
       } else if (event.key.length === 1 && PHYSICAL_KEY_PATTERN.test(event.key)) {
         const char = event.key.toLowerCase();
         typeChar(char);
-        // Si tecleas con el teclado físico, la tecla virtual equivalente
-        // también reacciona (mismo popup que si la hubieras clicado), para
-        // que el teclado en pantalla se sienta "vivo" también en ese caso.
-        const matchingKey = keyElementsByChar.get(char);
-        if (matchingKey) spawnKeyPopup(matchingKey, char);
       }
     });
 

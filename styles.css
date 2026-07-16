@@ -161,18 +161,6 @@ body::before {
   76% { opacity: 0.16; transform: scale(1.015); }
 }
 
-@keyframes matrix-text-flare {
-  0%, 100% { opacity: 1; transform: translateX(0); }
-  28% { opacity: 0.62; transform: translateX(-1px); }
-  52% { opacity: 1; transform: translateX(1px); }
-}
-
-@keyframes dock-geometry-drift {
-  0%, 100% { transform: translate3d(-8%, 12%, 0) scale(0.88); opacity: 0.035; }
-  45% { transform: translate3d(3%, -4%, 0) scale(1.04); opacity: 0.11; }
-  72% { transform: translate3d(-2%, 2%, 0) scale(0.97); opacity: 0.065; }
-}
-
 /* Barras tipo "volumen de bolsa": crecen/encogen desde la base
    (transform-origin:bottom + scaleY, nunca la propiedad height). */
 @keyframes bar-pulse {
@@ -447,15 +435,23 @@ body::before {
 }
 
 .dock__icon {
-  width: 2.15rem;
-  height: 2rem;
-  background: url('img/logo-graycris-s2.svg') center / contain no-repeat;
-  filter:
-    brightness(0) saturate(100%)
-    invert(30%) sepia(96%) saturate(3440%) hue-rotate(348deg) brightness(112%) contrast(109%)
-    drop-shadow(0 0 4px var(--glow));
+  position: relative;
+  width: 2rem;
+  height: 2.4rem;
+  background: linear-gradient(145deg, rgba(255, 43, 43, 0.3), rgba(74, 24, 24, 0.78));
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  box-shadow: inset 0 0 0 1px rgba(255, 120, 120, 0.45);
+  filter: drop-shadow(0 0 4px var(--glow));
   animation: breathe 3.2s var(--ease-organic) infinite;
   will-change: transform;
+}
+
+.dock__icon::before {
+  content: '';
+  position: absolute;
+  inset: 23% 12%;
+  background: url('img/logo-graycris-s2.svg') center / contain no-repeat;
+  filter: brightness(0) saturate(100%) invert(30%) sepia(96%) saturate(3440%) hue-rotate(348deg) brightness(125%) contrast(109%);
 }
 
 /* Opacidad + duración/retardo de la "respiración" distintos por icono, para
@@ -872,12 +868,6 @@ body::before {
   min-height: 320px;
 }
 
-.is-matrix-decoding {
-  color: var(--accent-red) !important;
-  text-shadow: -1px 0 rgba(255, 43, 43, 0.9), 1px 0 rgba(255, 90, 110, 0.55), 0 0 8px var(--glow);
-  animation: matrix-text-flare 130ms steps(2, end) 2;
-}
-
 /* --------------------------------------------------------------------------
    Teclado — zona completa inferior, dividido en mano izquierda / derecha.
    Recompuesto (v2): en vez de filas rotadas con teclas hexagonales, cada
@@ -919,7 +909,7 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow-x: auto;
+  overflow: hidden;
 }
 
 /* El cristal vive en esta capa enmascarada, no en el contenedor. Se resta
@@ -933,8 +923,6 @@ body::before {
   background:
     linear-gradient(180deg, rgba(255, 125, 125, 0.08), transparent 42%),
     linear-gradient(180deg, rgba(58, 20, 20, 0.76), rgba(10, 20, 24, 0.88));
-  backdrop-filter: blur(18px) saturate(1.25);
-  -webkit-backdrop-filter: blur(18px) saturate(1.25);
   -webkit-mask-image: linear-gradient(#000 0 0), url('img/logo-graycris-s2.svg');
   -webkit-mask-position: 0 0, center;
   -webkit-mask-size: 100% 100%, clamp(190px, 26vw, 330px) auto;
@@ -970,7 +958,6 @@ body::before {
   transform: translate(-50%, -50%);
   pointer-events: none;
   opacity: 0.07;
-  animation: logo-reference-breathe 12s var(--ease-organic) infinite;
 }
 
 .keyboard-hole img {
@@ -1051,20 +1038,17 @@ body::before {
      tan simples (opacidad/transform) el navegador ya las promociona bien
      por su cuenta al arrancar, así que el ahorro de memoria compensa el
      mínimo respingo de la primera vez que empiezan a animar. */
-  animation: pulse-glow 2.6s var(--ease-organic) var(--key-delay, 0s) infinite;
   text-shadow: 0 0 4px var(--glow);
   box-shadow:
     inset 0 0 0 1px rgba(255, 130, 130, 0.3),
     inset 0 3px 5px rgba(255, 160, 160, 0.08),
     inset 0 -4px 8px rgba(0, 0, 0, 0.3);
-  filter: drop-shadow(0 0 4px var(--glow));
 }
 
 /* El <span> con la letra "flota" (breathe); el <button> que lo contiene
    no se mueve, así el hitbox del clic/toque queda quieto. */
 .keyboard__key-label {
   display: inline-block;
-  animation: breathe 3.4s var(--ease-organic) var(--key-delay, 0s) infinite;
 }
 
 .keyboard__key:hover {
@@ -1080,33 +1064,6 @@ body::before {
   width: calc(var(--key-w) * 1.7);
   font-size: 0.7rem;
   letter-spacing: 0.03em;
-}
-
-/* Popup del carácter al pulsar una tecla (nace en script.js, se borra sola
-   del DOM al terminar su propia animación — mismo patrón que .ripple). */
-@keyframes key-popup-anim {
-  0% { opacity: 0; transform: translate(-50%, 6px) scale(0.6); }
-  30% { opacity: 1; transform: translate(-50%, 0) scale(1.15); }
-  100% { opacity: 0; transform: translate(-50%, -10px) scale(1); }
-}
-
-.key-popup {
-  position: absolute;
-  left: 50%;
-  bottom: 100%;
-  margin-bottom: 0.4rem;
-  padding: 0.3rem 0.55rem;
-  background: var(--bg-panel-2);
-  border: 1px solid var(--accent-red);
-  color: var(--accent-red);
-  font-size: 1rem;
-  text-shadow: 0 0 6px var(--glow);
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transform: translate(-50%, 0);
-  animation: key-popup-anim 450ms var(--ease-snap) forwards;
-  z-index: 5;
 }
 
 .keyboard__center {
@@ -1135,48 +1092,6 @@ body::before {
   padding: clamp(0.5rem, 1.2vw, 0.75rem) clamp(0.75rem, 2.5vw, 1.5rem);
   border-top: 1px solid var(--line);
   overflow: hidden;
-}
-
-.footer-geometry {
-  position: absolute;
-  z-index: 0;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: min(28vw, 360px);
-  pointer-events: none;
-  opacity: 0.78;
-  -webkit-mask-image: linear-gradient(to right, black 58%, transparent);
-  mask-image: linear-gradient(to right, black 58%, transparent);
-}
-
-.footer-geometry img {
-  position: absolute;
-  left: -8%;
-  top: -72%;
-  width: 62%;
-  height: 230%;
-  object-fit: contain;
-  filter:
-    brightness(0) saturate(100%)
-    invert(25%) sepia(83%) saturate(2480%) hue-rotate(337deg) brightness(95%) contrast(102%)
-    drop-shadow(0 0 5px rgba(255, 43, 43, 0.55));
-  animation: dock-geometry-drift 12s var(--ease-organic) infinite;
-  will-change: transform, opacity;
-}
-
-.footer-geometry img:nth-child(2) {
-  left: 16%;
-  rotate: 180deg;
-  animation-duration: 15s;
-  animation-delay: -5s;
-}
-
-.footer-geometry img:nth-child(3) {
-  left: 38%;
-  rotate: 90deg;
-  animation-duration: 18s;
-  animation-delay: -10s;
 }
 
 .taskbar {
@@ -1474,6 +1389,13 @@ body::before {
     grid-column: 1;
     grid-row: 2;
     margin: 0 1rem 0.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .keyboard-zone::-webkit-scrollbar {
+    display: none;
   }
 
   .keyboard {

@@ -130,10 +130,8 @@ wayman/
       luminosidad. Está inspirado en el enfoque del shader ASCII de Codrops,
       implementado con Canvas 2D para conservar la ejecución directa del
       proyecto sin dependencias ni proceso de build.
-- [x] Telemetría enlazada al teclado físico y virtual: cada pulsación cambia
-      frecuencia, velocidad, amplitud, barrido y lecturas numéricas. El mismo
-      evento lanza una onda Matrix breve sobre una muestra del texto visible,
-      restaurando después cada nodo sin destruir su marcado.
+- [x] Telemetría optimizada: el canvas funciona de forma autónoma a baja
+      frecuencia y ya no reacciona al teclado ni modifica otros textos.
       En formato horizontal se sitúa en la segunda fila, alineada justo bajo
       el panel de Indicadores corporativos y su gráfico económico.
 - [x] Canal central del teclado: el empaquetado de círculos fue sustituido por
@@ -141,9 +139,9 @@ wayman/
       máscara compuesta para retirar realmente tinte y blur dentro del símbolo
       y mostrar las tarjetas situadas debajo.
 - [x] Identidad del dock: el arte `GreyCris_logo-S2.ai` se convirtió a SVG,
-      se recoloreó con la paleta roja del terminal y sustituyó los cinco
-      hexágonos laterales. Tres instancias vectoriales desfasadas animan las
-      formas curvas del emblema en el extremo izquierdo del footer.
+      se recoloreó con la paleta roja del terminal y se integró dentro de los
+      cinco hexágonos laterales originales. La animación vectorial del footer
+      se eliminó para reducir composición continua y ruido visual.
 - [ ] Interactividad del **dock** y las **tarjetas** (selección de módulo
       activo, focus/expansión) — sigue pendiente, punto de extensión
       comentado en `script.js`. La de la **taskbar** ya está resuelta (ver
