@@ -101,6 +101,13 @@ wayman/
 
 ## Dos bugs reales que aparecieron al verificar (y su arreglo)
 
+- **Viewport bloqueado al 100 % sin scroll exterior.** Se sustituyó
+  `100vw/100vh` por dimensiones relativas al contenedor raíz, se aplicó
+  `overflow:hidden` a `html`, `body`, `.desktop`, body-grid, dock, teclado,
+  header y footer, y la columna central pasó a `minmax(0, 1fr)`. Solo
+  `.board` y la salida de terminal conservan desplazamiento interno con
+  overscroll contenido.
+
 - **Las tarjetas se solapaban entre sí.** `.board` hacía de scroll container
   *y* de grid con filas `auto` a la vez; al estar estirado por su padre a una
   altura fija, sus propias filas dejaban de medirse por el contenido de las

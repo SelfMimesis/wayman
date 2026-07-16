@@ -57,9 +57,12 @@
 }
 
 html, body {
+  width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 html {
@@ -204,8 +207,11 @@ body::before {
   z-index: 1;
   display: grid;
   grid-template-rows: auto 1fr auto;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   text-transform: uppercase;
 }
 
@@ -238,6 +244,8 @@ body::before {
   gap: clamp(0.5rem, 1.5vw, 1rem);
   padding: clamp(0.6rem, 1.5vw, 1rem) clamp(0.75rem, 2.5vw, 1.5rem);
   border-bottom: 1px solid var(--line);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .desktop__header::after {
@@ -377,9 +385,11 @@ body::before {
    -------------------------------------------------------------------------- */
 .desktop__body {
   display: grid;
-  grid-template-columns: minmax(90px, 150px) 1fr;
+  grid-template-columns: minmax(90px, 150px) minmax(0, 1fr);
   grid-template-rows: 1fr; /* fila explícita para que .keyboard-zone se ancle a su final */
   min-height: 0; /* permite que dock/board hagan scroll interno sin estirar la fila */
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* --- Dock lateral izquierdo -------------------------------------------- */
@@ -396,8 +406,7 @@ body::before {
   grid-column: 1;
   grid-row: 1;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   padding: 0.5rem 0;
   position: relative;
   isolation: isolate;
@@ -479,7 +488,10 @@ body::before {
   grid-column: 2;
   grid-row: 1;
   min-height: 0;
+  min-width: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
   padding: clamp(0.6rem, 1.5vw, 1.25rem);
 }
 
@@ -1092,6 +1104,8 @@ body::before {
   padding: clamp(0.5rem, 1.2vw, 0.75rem) clamp(0.75rem, 2.5vw, 1.5rem);
   border-top: 1px solid var(--line);
   overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .taskbar {
@@ -1117,6 +1131,9 @@ body::before {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
+  justify-content: flex-end;
 }
 
 .taskbar__button {
@@ -1316,7 +1333,7 @@ body::before {
 /* Por debajo de la resolución de referencia (portátil / tablet más pequeña) */
 @media (max-width: 1024px) {
   .desktop__body {
-    grid-template-columns: minmax(80px, 120px) 1fr;
+    grid-template-columns: minmax(80px, 120px) minmax(0, 1fr);
   }
 
   .board__grid {
@@ -1342,8 +1359,7 @@ body::before {
   .dock {
     grid-column: 1;
     grid-row: 1;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: hidden;
     border-right: none;
     border-bottom: 1px solid var(--line);
   }
@@ -1359,8 +1375,8 @@ body::before {
   }
 
   .dock__item {
-    flex: 0 0 auto;
-    min-width: 5.5rem;
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   .header__status {
@@ -1389,13 +1405,7 @@ body::before {
     grid-column: 1;
     grid-row: 2;
     margin: 0 1rem 0.5rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-  }
-
-  .keyboard-zone::-webkit-scrollbar {
-    display: none;
+    overflow: hidden;
   }
 
   .keyboard {
