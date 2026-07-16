@@ -11,16 +11,20 @@
 
   <div class="desktop">
 
+    <!-- Textura de fondo animada (rejilla tipo circuito/HUD, deriva muy
+         lenta) — puramente decorativa, va primera para pintar detrás de
+         todo lo demás. -->
+    <div class="bg-grid" aria-hidden="true"></div>
+
     <!-- ==========================================================
          HEADER — identidad corporativa + bloque de estado
          ========================================================== -->
     <header class="desktop__header">
 
       <div class="header__brand">
-        <!-- PLACEHOLDER: logo GrayCris. Pendiente exportar el PDF vectorial
-             adjunto (2ud_ViniloCorteBrillante-Pegatina_15x5,6cm_LogoRobot.pdf)
-             a SVG/PNG y sustituir este bloque vacío. -->
-        <div class="brand__logo" aria-hidden="true"></div>
+        <div class="brand__logo logo-pulse" aria-hidden="true">
+          <img src="img/logo-graycris.svg" alt="">
+        </div>
         <div class="brand__text">
           <span class="brand__name">GRAYCRIS CORPORATION</span>
           <span class="brand__subtitle">Terminal ejecutivo privado — Acceso nivel Ónice</span>
@@ -243,7 +247,9 @@
          ========================================================== -->
     <div class="lock-overlay" id="lock-overlay" role="dialog" aria-modal="true" aria-labelledby="lock-overlay-title" aria-hidden="true">
       <div class="lock-overlay__content">
-        <div class="lock-overlay__logo" aria-hidden="true"></div>
+        <div class="lock-overlay__logo logo-pulse" aria-hidden="true">
+          <img src="img/logo-graycris.svg" alt="">
+        </div>
         <p id="lock-overlay-title" class="lock-overlay__title">Terminal bloqueado — Acceso restringido</p>
         <button type="button" class="lock-overlay__reactivate" id="lock-overlay-reactivate">Reactivar sesión</button>
       </div>

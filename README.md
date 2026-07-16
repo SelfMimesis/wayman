@@ -119,11 +119,12 @@ wayman/
 
 ## Pendiente (próximos pasos)
 
-- [ ] Logo de GrayCris: el archivo compartido en el chat
-      (`2ud_ViniloCorteBrillante-Pegatina_15x5,6cm_LogoRobot.pdf`) es un PDF
-      vectorial, y un `<img>` no puede usarlo directamente. Cuando toque
-      maquetar el logo hace falta exportarlo a SVG o PNG (por ejemplo a
-      `img/logo-graycris.svg`) y sustituir el placeholder hexagonal actual.
+- [x] Logo de GrayCris: exportado desde
+      `2ud_ViniloCorteBrillante-Pegatina_15x5,6cm_LogoRobot.pdf` a
+      `img/logo-graycris.svg` e integrado en la cabecera y el bloqueo. Ambos
+      usan una respiración lenta de escala, intensidad y halo inspirada en
+      `E22_S85_ConRoom_ScreenSavers_C_v01.mp4`, con alternativa estática para
+      `prefers-reduced-motion`.
 - [ ] Interactividad del **dock** y las **tarjetas** (selección de módulo
       activo, focus/expansión) — sigue pendiente, punto de extensión
       comentado en `script.js`. La de la **taskbar** ya está resuelta (ver
@@ -289,6 +290,35 @@ Revisión de `index.html` + `styles.css` + `script.js` completos (no solo lo
       (`1` → `1V` → `1キ` → `1イ` → `1y`), tecleo rápido cruzando ambas
       manos sin corrupción, y los contadores de `backdrop-filter`/
       `will-change` antes/después de la pasada de rendimiento.
+
+## Gráfico de bolsa ampliado + más brillos/circuitos + textura de fondo
+
+- [x] **Gráfico de INDICADORES CORPORATIVOS, ampliado** (`min-height` de
+      56px a 110px) y con animación de verdad en las líneas, no solo
+      efectos decorativos encima de una forma estática: `stroke-dasharray`
+      + `stroke-dashoffset` en bucle hace que la "energía" fluya por el
+      propio trazo. Se añadió una segunda línea, más tenue, tipo "media
+      móvil de comparación" (fluye en sentido contrario, para dar
+      profundidad), y las barras de "volumen" pasaron de 6 a 7 y de 20px a
+      34px de alto.
+- [x] **Chispa de circuito en el borde superior de las 6 tarjetas** (no
+      solo header/footer como antes), cada una con su propia duración/
+      retardo para no ir en fase — mismo `@keyframes circuit-pulse` ya
+      existente, solo una instancia más por tarjeta vía `.card::after`.
+- [x] **Pulso añadido** al logo del header y a los indicadores de
+      ubicación/auditoría (antes solo pulsaba "Conexión segura") — cada
+      uno a su propio ritmo lento.
+- [x] **Textura de fondo animada**: una rejilla tenue tipo circuito/HUD
+      (`.bg-grid`, primer hijo de `.desktop` para pintar detrás de todo)
+      con una deriva lentísima (`transform: translate`, 16s en bucle).
+      `inset: -48px` le da margen igual al recorrido del drift para que
+      nunca asome un borde vacío al desplazarse.
+- [x] Todo lo nuevo sigue la misma disciplina de rendimiento de la pasada
+      anterior: nada de `backdrop-filter` nuevo, `will-change` solo en los
+      elementos realmente nuevos (no se repite por instancia), y las dos
+      únicas propiedades que no son transform/opacity puro
+      (`stroke-dashoffset` en las 2 líneas del gráfico) están contenidas a
+      un solo panel pequeño, no repetidas por decenas de elementos.
 
 ## Notas técnicas
 

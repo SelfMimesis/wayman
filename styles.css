@@ -147,6 +147,20 @@ body::before {
   50% { transform: translateY(-2px); }
 }
 
+/* Respiración del emblema basada en el salvapantallas de referencia: el
+   encuadre apenas se acerca y la luz tiene un pico largo, nunca un flash. */
+@keyframes logo-reference-breathe {
+  0%, 100% { transform: scale(0.985); opacity: 0.82; }
+  42% { transform: scale(1.012); opacity: 1; }
+  58% { transform: scale(1.018); opacity: 0.96; }
+}
+
+@keyframes logo-reference-halo {
+  0%, 18%, 100% { opacity: 0.08; transform: scale(0.98); }
+  46%, 62% { opacity: 0.48; transform: scale(1.045); }
+  76% { opacity: 0.16; transform: scale(1.015); }
+}
+
 /* Barras tipo "volumen de bolsa": crecen/encogen desde la base
    (transform-origin:bottom + scaleY, nunca la propiedad height). */
 @keyframes bar-pulse {
@@ -175,6 +189,13 @@ body::before {
   to { transform: translateX(500%); }
 }
 
+/* Deriva lentísima de la rejilla de fondo — un solo transform:translate en
+   bucle, así que es barato sin importar lo grande que sea el elemento. */
+@keyframes grid-drift {
+  from { transform: translate(0, 0); }
+  to { transform: translate(48px, 48px); }
+}
+
 /* --------------------------------------------------------------------------
    .desktop — contenedor raíz de pantalla completa (3 filas: header/body/footer)
    -------------------------------------------------------------------------- */
@@ -186,6 +207,23 @@ body::before {
   width: 100vw;
   height: 100vh;
   text-transform: uppercase;
+}
+
+/* Textura de fondo: rejilla tenue tipo circuito/HUD, con deriva continua.
+   inset:-48px le da margen extra (igual al recorrido del drift) para que
+   nunca se vea un borde vacío al desplazarse. Va primera en el DOM a
+   propósito para pintar detrás de header/body/footer sin necesitar
+   z-index (todos están en la capa "auto" de .desktop, y el orden del DOM
+   decide dentro de esa capa). */
+.bg-grid {
+  position: absolute;
+  inset: -48px;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 70, 70, 0.05) 0px, rgba(255, 70, 70, 0.05) 1px, transparent 1px, transparent 48px),
+    repeating-linear-gradient(90deg, rgba(255, 70, 70, 0.05) 0px, rgba(255, 70, 70, 0.05) 1px, transparent 1px, transparent 48px);
+  animation: grid-drift 16s linear infinite;
+  pointer-events: none;
+  will-change: transform;
 }
 
 /* --------------------------------------------------------------------------
@@ -218,19 +256,44 @@ body::before {
 .header__brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1.35rem;
   min-width: 0;
 }
 
 .brand__logo {
   flex-shrink: 0;
-  width: 40px;
-  height: 48px;
-  color: var(--accent-red-dim);
-  background: currentColor;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  filter: drop-shadow(0 0 4px var(--glow));
-  animation: pulse-glow 3.8s var(--ease-organic) infinite;
+  width: clamp(82px, 8vw, 112px);
+}
+
+.logo-pulse {
+  position: relative;
+  aspect-ratio: 448.316 / 180.146;
+  isolation: isolate;
+  transform-origin: center;
+  animation: logo-reference-breathe 11s var(--ease-organic) infinite;
+  will-change: transform, opacity;
+}
+
+.logo-pulse img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: saturate(1.35) contrast(1.08) drop-shadow(0 0 5px rgba(255, 43, 43, 0.55));
+}
+
+.logo-pulse::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: -10%;
+  background: url('img/logo-graycris.svg') center / contain no-repeat;
+  filter: blur(8px) saturate(1.8);
+  pointer-events: none;
+  animation: logo-reference-halo 11s var(--ease-organic) infinite;
+  will-change: transform, opacity;
 }
 
 .brand__text {
@@ -1069,12 +1132,7 @@ body::before {
 }
 
 .lock-overlay__logo {
-  width: 64px;
-  height: 76px;
-  color: var(--accent-red);
-  background: currentColor;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  filter: drop-shadow(0 0 10px var(--glow));
+  width: min(260px, 58vw);
 }
 
 .lock-overlay__title {
